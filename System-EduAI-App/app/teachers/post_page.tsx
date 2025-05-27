@@ -123,14 +123,21 @@ const PostPage = () => {
           <Ionicons name="arrow-back" size={25} color="#000" />
         </TouchableOpacity>
         <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#000" style={styles.searchIcon} />
+          <Ionicons
+            name="search-outline"
+            size={20}
+            color="#000"
+            style={styles.searchIcon}
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Tìm Kiếm"
             placeholderTextColor="#000"
           />
         </View>
-        <TouchableOpacity onPress={() => router.push("/teachers/notification_page")}>
+        <TouchableOpacity
+          onPress={() => router.push("/teachers/notification_page")}
+        >
           <Ionicons name="notifications-outline" size={25} color="#26A69A" />
         </TouchableOpacity>
       </View>
@@ -195,11 +202,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   searchIcon: { marginLeft: 10 },
-  searchInput: { color: "#000", marginLeft: 5, flex: 1 },
+  searchInput: {
+    color: "#000",
+    marginLeft: 5,
+    flex: 1,
+  },
   filterContainer: {
     flexDirection: "row",
     alignItems: "center",
-    height: 50,
+    height: 60,
     paddingHorizontal: 20,
   },
   divider: { fontSize: 20, marginHorizontal: 10 },

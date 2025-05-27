@@ -53,7 +53,30 @@ export default function RootLayout() {
         name="teachers/update_teacher_page"
         options={{ headerShown: false }}
       />
-
+      <Stack.Screen
+        name="students/home_student"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/profile_student"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/edit_profile_student"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/update_measurement_student"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/growth_tracking"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/daily_schedule"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

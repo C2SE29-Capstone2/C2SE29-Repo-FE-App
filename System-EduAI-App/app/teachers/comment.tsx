@@ -38,7 +38,10 @@ const fetchCommentsForChild = async (childId: string) => {
       postMonth: "5",
       comment: "Bé biết giúp đỡ bạn bè khi cần thiết.",
     },
-    { id: "mam-6", postMonth: "6", comment: "Bé thích vẽ tranh và kể chuyện." },
+    { id: "mam-6", 
+      postMonth: "6", 
+      comment: "Bé thích vẽ tranh và kể chuyện." 
+    },
     {
       id: "mam-7",
       postMonth: "7",
@@ -70,13 +73,19 @@ const fetchCommentsForChild = async (childId: string) => {
       comment: "Bé rất lễ phép với thầy cô và bạn bè.",
     },
 
-    { id: "choi-1", postMonth: "1", comment: "Bé chủ động giúp đỡ bạn bè." },
+    { id: "choi-1", 
+      postMonth: "1", 
+      comment: "Bé chủ động giúp đỡ bạn bè." 
+    },
     {
       id: "choi-2",
       postMonth: "2",
       comment: "Bé biết tự dọn dẹp đồ chơi sau khi chơi.",
     },
-    { id: "choi-3", postMonth: "3", comment: "Bé phát âm rõ ràng hơn." },
+    { id: "choi-3", 
+      postMonth: "3", 
+      comment: "Bé phát âm rõ ràng hơn." 
+    },
     {
       id: "choi-4",
       postMonth: "4",
@@ -107,7 +116,10 @@ const fetchCommentsForChild = async (childId: string) => {
       postMonth: "9",
       comment: "Bé biết kể lại câu chuyện ngắn.",
     },
-    { id: "choi-10", postMonth: "10", comment: "Bé biết tự mặc quần áo." },
+    { id: "choi-10", 
+      postMonth: "10", 
+      comment: "Bé biết tự mặc quần áo." 
+    },
     {
       id: "choi-11",
       postMonth: "11",
@@ -124,7 +136,10 @@ const fetchCommentsForChild = async (childId: string) => {
       postMonth: "1",
       comment: "Bé biết tự chuẩn bị đồ dùng học tập.",
     },
-    { id: "la-2", postMonth: "2", comment: "Bé biết nhận biết các chữ cái." },
+    { id: "la-2", 
+      postMonth: "2", 
+      comment: "Bé biết nhận biết các chữ cái." 
+    },
     {
       id: "la-3",
       postMonth: "3",

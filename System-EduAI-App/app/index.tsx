@@ -24,6 +24,8 @@ export default function LoginScreen() {
           router.replace("/teachers/home" as Href<"/teachers/home">);
         } else if (result.role === "parent") {
           router.replace("/parents/home_parent" as Href<"/parents/home_parent">);
+        } else if (result.role === "student") {
+          router.replace("/students/home_student" as Href<"/students/home_student">);
         }
       }
     } catch (error) {
