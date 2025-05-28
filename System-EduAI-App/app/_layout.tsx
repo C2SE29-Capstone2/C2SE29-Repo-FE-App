@@ -77,6 +77,66 @@ export default function RootLayout() {
         name="students/daily_schedule"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="students/create_shedule"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/extracurricular_manager"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/menu_suggestion"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/diet_tracking"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/notification"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/search"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/create_schedule"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/study_statistic"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/growth_report"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/study_speed_analysis"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="students/face_recognition"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="parents/message_parent"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="parents/access_control"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="parents/nur_a1_class"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="parents/goodbye_control"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

@@ -95,6 +95,10 @@ const GrowthTracking = () => {
           </View>
         )}
       </ScrollView>
+      {/* Nút xem báo cáo tăng trưởng */}
+      <TouchableOpacity style={styles.reportBtn} onPress={() => router.push("/students/growth_report" as any)}>
+        <Text style={styles.reportBtnText}>Xem báo cáo tăng trưởng</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -228,6 +232,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveBtnText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  reportBtn: {
+    backgroundColor: "#00bcd4",
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginHorizontal: 18,
+    marginBottom: 18,
+    marginTop: 8,
+  },
+  reportBtnText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
 });
 
 export default GrowthTracking;

@@ -119,6 +119,7 @@ const DailySchedule = () => {
         <View style={styles.greetingRow}>
           <Image
             source={require("../../assets/images/student_2_nam.png")}
+          
             style={styles.avatar}
           />
           <View>
@@ -164,6 +165,17 @@ const DailySchedule = () => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* Nút + và tiêu đề */}
+        <View style={styles.todayActivitiesRow}>
+          <Text style={styles.todayActivitiesTitle}>Các hoạt động hôm nay</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push("/students/create_schedule" as any)}
+          >
+            <Ionicons name="add" size={24} color="#00bcd4" />
+          </TouchableOpacity>
+        </View>
 
         {/* Schedule Sections */}
         {scheduleData.map((section, idx) => (
@@ -309,6 +321,35 @@ const styles = StyleSheet.create({
   itemIcon: { width: 32, height: 32, marginRight: 10 },
   itemTitle: { fontSize: 16, fontWeight: "bold", color: "#222" },
   itemTime: { fontSize: 14, color: "#888" },
+  todayActivitiesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  todayActivitiesTitle: {
+    fontWeight: "bold",
+    fontSize: 16,
+    color: "#00bcd4",
+    backgroundColor: "#e6fafd",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    flex: 1,
+  },
+  addButton: {
+    marginLeft: 10,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: "#00bcd4",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 32,
+    height: 32,
+  },
 });
 
 export default DailySchedule;

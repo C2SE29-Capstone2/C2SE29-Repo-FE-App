@@ -36,7 +36,10 @@ const StudentHomeScreen = () => {
     {
       label: "Thống kê học tập",
       icon: <Ionicons name="stats-chart" size={22} color="#00bcd4" />,
-      onPress: () => {},
+      onPress: () => {
+        setShowMenu(false);
+        setTimeout(() => router.push("/students/study_statistic" as any), 0);
+      },
     },
     {
       label: "Lịch trình hằng ngày",
@@ -48,16 +51,47 @@ const StudentHomeScreen = () => {
     },
     {
       label: "Hoạt động ngoại khóa",
-      icon: <Ionicons name="bicycle" size={22} color="#00bcd4" />, // đổi icon cho đúng
-      onPress: () => {},
+      icon: <Ionicons name="bicycle" size={22} color="#00bcd4" />,
+      onPress: () => {
+        setShowMenu(false);
+        setTimeout(
+          () => router.push("/students/extracurricular_manager" as any),
+          0
+        );
+      },
     },
     {
       label: "Gợi ý thực đơn",
       icon: <Ionicons name="fast-food" size={22} color="#00bcd4" />,
-      onPress: () => {},
+      onPress: () => {
+        setShowMenu(false);
+        setTimeout(() => router.push("/students/menu_suggestion" as any), 0);
+      },
     },
-    { label: "Thông báo", icon: <Ionicons name="notifications" size={22} color="#00bcd4" />, onPress: () => {} },
-    { label: "Đăng xuất", icon: <Ionicons name="log-out" size={22} color="#00bcd4" />, onPress: () => {} },
+    {
+      label: "Thông báo",
+      icon: <Ionicons name="notifications" size={22} color="#00bcd4" />,
+      onPress: () => {
+        setShowMenu(false);
+        setTimeout(() => router.push("/students/notification" as any), 0);
+      },
+    },
+    // {
+    //   label: "Nhận diện khuôn mặt",
+    //   icon: <Ionicons name="scan-circle" size={22} color="#00bcd4" />,
+    //   onPress: () => {
+    //     setShowMenu(false);
+    //     setTimeout(() => router.push("/students/face_recognition" as any), 0);
+    //   },
+    // },
+    {
+      label: "Đăng xuất",
+      icon: <Ionicons name="log-out" size={22} color="#00bcd4" />,
+      onPress: () => {
+        setShowMenu(false);
+        setTimeout(() => router.replace("/"), 0);
+      },
+    },
   ];
 
   return (
@@ -72,7 +106,11 @@ const StudentHomeScreen = () => {
           <View style={styles.menuDrawer}>
             <Text style={styles.menuHeader}>Menu</Text>
             {menuItems.map((item, idx) => (
-              <TouchableOpacity key={idx} style={styles.menuItem} onPress={item.onPress}>
+              <TouchableOpacity
+                key={idx}
+                style={styles.menuItem}
+                onPress={item.onPress}
+              >
                 {item.icon}
                 <Text style={styles.menuItemText}>{item.label}</Text>
               </TouchableOpacity>
@@ -87,18 +125,24 @@ const StudentHomeScreen = () => {
           <Ionicons name="menu" size={28} color="#00bcd4" />
         </TouchableOpacity>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Ionicons
-            name="search"
-            size={24}
-            color="#00bcd4"
-            style={{ marginRight: 16 }}
-          />
-          <View>
+          <TouchableOpacity
+            onPress={() => router.push("/students/search" as any)}
+          >
+            <Ionicons
+              name="search"
+              size={24}
+              color="#00bcd4"
+              style={{ marginRight: 16 }}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/students/notification" as any)}
+          >
             <Ionicons name="notifications" size={24} color="#00bcd4" />
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>2</Text>
+              <Text style={styles.badgeText}>10</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -109,21 +153,23 @@ const StudentHomeScreen = () => {
             source={require("../../assets/images/background.png")}
             style={styles.banner}
           />
-          <View style={styles.bannerOverlay}>
+          {/* <View style={styles.bannerOverlay}>
             <View style={styles.bannerContent}>
               <Text style={styles.bannerTitle}>Sự kiện sắp tới</Text>
               <Text style={styles.bannerEvent}>
                 TRẠI HÈ RẠM NẮNG tại Hòa An Farm
               </Text>
               <Text style={styles.bannerDetail}>
-                Thời gian dự kiến 30/4/2024
-              </Text>
-              <Text style={styles.bannerDetail}>
                 Địa điểm: Hòa An Farm, Sơn Trà, Đà Nẵng
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={22} color="#fff" style={styles.bannerArrow} />
-          </View>
+            <Ionicons
+              name="chevron-forward"
+              size={22}
+              color="#fff"
+              style={styles.bannerArrow}
+            />
+          </View> */}
         </View>
 
         {/* Main Menus dưới banner */}
@@ -137,37 +183,53 @@ const StudentHomeScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.mainMenuItem}
-            onPress={() => { /* Thống kê học tập */ }}
+            onPress={() => router.push("/students/study_statistic" as any)}
           >
             <Ionicons name="stats-chart" size={28} color="#00bcd4" />
             <Text style={styles.mainMenuLabel}>Thống kê</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.mainMenuItem}
-            onPress={() => { /* Gợi ý thực đơn */ }}
+            onPress={() => router.push("/students/menu_suggestion" as any)}
           >
             <Ionicons name="fast-food" size={28} color="#00bcd4" />
             <Text style={styles.mainMenuLabel}>Thực đơn</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.mainMenuItem}
-            onPress={() => { /* Hoạt động ngoại khóa */ }}
+            onPress={() =>
+              router.push("/students/extracurricular_manager" as any)
+            }
           >
             <Ionicons name="bicycle" size={28} color="#00bcd4" />
             <Text style={styles.mainMenuLabel}>Ngoại khóa</Text>
           </TouchableOpacity>
+          {/* <TouchableOpacity
+            style={styles.mainMenuItem}
+            onPress={() => router.push("/students/face_recognition" as any)}
+          >
+            <Ionicons name="scan-circle" size={28} color="#00bcd4" />
+            <Text style={styles.mainMenuLabel}>Nhận diện</Text>
+          </TouchableOpacity> */}
         </View>
 
         {/* Class Card */}
         <View style={styles.classCard}>
-          <TouchableOpacity onPress={() => router.push("/students/profile_student" as any)}>
+          <TouchableOpacity
+            onPress={() => router.push("/students/profile_student" as any)}
+          >
             <Image
               source={require("../../assets/images/student_2_nam.png")}
               style={styles.classImage}
             />
           </TouchableOpacity>
           <View style={{ marginLeft: 12 }}>
-            <TouchableOpacity onPress={() => router.push("/students/profile_student" as any)}>
+            <TouchableOpacity
+              onPress={() => router.push("/students/profile_student" as any)}
+            >
+              <Text style={{ fontSize: 18, fontWeight: "bold", color: "#00bcd4" }}>
+                Nguyễn Văn Ngọc
+              </Text>
               <Text style={styles.classLabel}>
                 Lớp: <Text style={styles.classValue}>Chồi Non</Text>
               </Text>
@@ -434,7 +496,10 @@ const styles = StyleSheet.create({
   healthImage: { width: 70, height: 70, borderRadius: 12, marginLeft: 10 },
   menuOverlay: {
     position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.25)",
     zIndex: 100,
     flexDirection: "row",

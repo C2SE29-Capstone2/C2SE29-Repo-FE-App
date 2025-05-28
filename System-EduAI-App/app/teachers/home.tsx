@@ -130,6 +130,7 @@ function HomeScreen({ navigation }: HomeScreenProps) {
   const { notifications, isLoading: notificationsLoading } = useNotifications();
 
   const isLoading = teacherLoading || classLoading || notificationsLoading;
+  const [isCheckIn, setIsCheckIn] = React.useState(true);
 
   // Post data (mocked)
   const posts: Post[] = [
@@ -273,6 +274,62 @@ function HomeScreen({ navigation }: HomeScreenProps) {
             <Text style={styles.navText}>Nhận Xét</Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+                  style={[
+                    styles.accessControlCard,
+                    { borderColor: "#a5b4fc", borderWidth: 2, marginTop: 12 },
+                  ]}
+                  onPress={() => router.push("/parents/access_control")}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <View style={styles.accessControlIconBox}>
+                      <MaterialIcons
+                        name={isCheckIn ? "wb-sunny" : "auto-awesome"}
+                        size={32}
+                        color={isCheckIn ? "#FFD600" : "#2196F3"}
+                      />
+                    </View>
+                    <View style={{ marginLeft: 12 }}>
+                      <Text style={styles.accessControlTitle}>
+                        {isCheckIn ? "Chào buổi sáng!" : "Hẹn gặp lại!"}
+                      </Text>
+                      <Text style={styles.accessControlSubtitle}>
+                        {isCheckIn
+                          ? "Hãy bắt đầu một ngày tuyệt vời!"
+                          : "Cuối ngày vui vẻ!"}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+        
+                {/* Goodbye Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.accessControlCard,
+                    { borderColor: "#a5b4fc", borderWidth: 2, marginTop: 12 },
+                  ]}
+                  onPress={() => router.push("/parents/goodbye_control")}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <View
+                      style={[
+                        styles.accessControlIconBox,
+                        { backgroundColor: "#e0e7ff" },
+                      ]}
+                    >
+                      <MaterialIcons name="auto-awesome" size={32} color="#6366f1" />
+                    </View>
+                    <View style={{ marginLeft: 12 }}>
+                      <Text style={[styles.accessControlTitle, { color: "#6366f1" }]}>
+                        Hẹn gặp lại!
+                      </Text>
+                      <Text style={styles.accessControlSubtitle}>
+                        Cuối ngày vui vẻ!
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
 
         {/* Teacher Info */}
         <View style={styles.teacherInfoBox}>
@@ -656,5 +713,36 @@ const styles = StyleSheet.create({
     borderBottomColor: "white",
     borderBottomWidth: 1,
     marginVertical: 10,
+  },
+  accessControlCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    elevation: 2,
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+  },
+  accessControlIconBox: {
+    backgroundColor: "#e0f7fa",
+    padding: 12,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+    marginTop: -24,
+    borderWidth: 3,
+    borderColor: "#fff",
+  },
+  accessControlTitle: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#1A3442",
+  },
+  accessControlSubtitle: {
+    fontSize: 13,
+    color: "#1A3442",
   },
 });

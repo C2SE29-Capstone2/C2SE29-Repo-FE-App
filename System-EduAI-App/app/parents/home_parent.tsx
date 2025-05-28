@@ -20,16 +20,14 @@ import {
 import { NavigationContainer } from "@react-navigation/native";
 import { DrawerNavigationProp } from "@react-navigation/drawer";
 import { router } from "expo-router";
-// import Contact from './contact_page'; 
+// import Contact from './contact_page';
 // import Account from './account_page';
 // import Post from './post_page';
 // import Album from './album';
-import Message from '././message_parent';
+import Message from "././message_parent";
 // import Notification from './notification_page';
 // import Medicine from './medicine_page';
 // import Comment from './comment';
-
-
 
 const useTeacher = () => ({
   teacher: { fullName: "Nguyễn Thị Hoa" },
@@ -96,31 +94,33 @@ const CustomDrawerContent = (props: CustomDrawerContentProps) => (
       <Text style={styles.sidebarText}>{props.childName}</Text>
     </View>
     <View style={styles.hr} />
-    {[
-      { name: "Home", icon: "home", screen: "Home" },
-      { name: "Liên Hệ", icon: "headset-mic", screen: "Contact" },
-      { name: "Tài Khoản", icon: "person", screen: "Account" },
-      { name: "Bài Viết", icon: "featured-play-list", screen: "Post" },
-      { name: "Ảnh", icon: "image", screen: "Album" },
-      { name: "Nhắn Tin", icon: "chat", screen: "Message" },
-      { name: "Thông Báo", icon: "notifications", screen: "Notification" },
-      { name: "Dinh Dưỡng", icon: "add-alert", screen: "Medicine" },
-      { name: "Nhận Xét", icon: "article", screen: "Comment" },
-    ].map((item, index) => (
-      <React.Fragment key={index}>
-        <DrawerItem
-          label={item.name}
-          icon={() => (
-            <MaterialIcons name={item.icon as any} size={30} color="white" />
-          )}
-          labelStyle={styles.sidebarText}
-          onPress={() =>
-            props.navigation.navigate(item.screen as keyof RootParamList)
-          }
-        />
-        <View style={styles.hr} />
-      </React.Fragment>
-    ))}
+    {/* Menu Thực Đơn */}
+    <DrawerItem
+      label="Thực Đơn"
+      icon={() => (
+        <MaterialIcons name="restaurant-menu" size={30} color="white" />
+      )}
+      labelStyle={styles.sidebarText}
+      onPress={() => props.navigation.navigate("Home")}
+    />
+    <View style={styles.hr} />
+    {/* Menu Nhắn Tin */}
+    <DrawerItem
+      label="Nhắn Tin"
+      icon={() => <MaterialIcons name="chat" size={30} color="white" />}
+      labelStyle={styles.sidebarText}
+      onPress={() => props.navigation.navigate("Message")}
+    />
+    <View style={styles.hr} />
+    {/* Đăng xuất */}
+    <DrawerItem
+      label="Đăng xuất"
+      icon={() => <MaterialIcons name="logout" size={30} color="white" />}
+      labelStyle={styles.sidebarText}
+      onPress={() => {
+        router.replace("/");
+      }}
+    />
   </DrawerContentScrollView>
 );
 
@@ -132,6 +132,9 @@ function HomeScreen({ navigation }: HomeScreenProps) {
   const { notifications, isLoading: notificationsLoading } = useNotifications();
 
   const isLoading = teacherLoading || classLoading || notificationsLoading;
+
+  // State cho trạng thái vào/ra (checkIn)
+  const [isCheckIn, setIsCheckIn] = React.useState(true); // true: vào, false: ra
 
   // Post data (mocked)
   const posts: Post[] = [
@@ -238,63 +241,129 @@ function HomeScreen({ navigation }: HomeScreenProps) {
 
       {/* Body */}
       <View style={styles.body}>
-        {/* Navigation Buttons */}
+        {/* Navigation Buttons - Thực Đơn và Nhắn Tin */}
         <View style={styles.navBox}>
           <TouchableOpacity
             style={styles.navItem}
-            onPress={() => router.push("/teachers/message_page")}
+            onPress={() => router.push("/students/menu_suggestion")}
           >
             <View style={styles.navIconBox}>
-              <MaterialIcons name="message" size={24} color="#00695C" />
+              <MaterialIcons name="restaurant-menu" size={24} color="#00695C" />
+            </View>
+            <Text style={styles.navText}>Thực Đơn</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => router.push("/parents/message_parent")}
+          >
+            <View style={styles.navIconBox}>
+              <MaterialIcons name="chat" size={24} color="#00695C" />
             </View>
             <Text style={styles.navText}>Nhắn Tin</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => router.push("/teachers/medicine_page")}
-          >
-            <View style={styles.navIconBox}>
-              <MaterialIcons name="add-alert" size={24} color="#00695C" />
-            </View>
-            <Text style={styles.navText}>Dinh Dưỡng</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => router.push("/teachers/album")}
-          >
-            <View style={styles.navIconBox}>
-              <MaterialIcons name="photo" size={24} color="#00695C" />
-            </View>
-            <Text style={styles.navText}>Album</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => router.push("/teachers/comment")}
-          >
-            <View style={styles.navIconBox}>
-              <MaterialIcons name="article" size={24} color="#00695C" />
-            </View>
-            <Text style={styles.navText}>Nhận Xét</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Teacher Info */}
-        <View style={styles.teacherInfoBox}>
-          <Image
-            source={require("../../assets/images/teacher.png")}
-            style={styles.teacherAvatar}
-          />
-          <View style={styles.teacherInfoTextBox}>
-            <View style={styles.teacherInfoRow}>
-              <Text style={styles.teacherLabel}>Cô Giáo: </Text>
-              <Text style={styles.teacherValue}>
-                {teacher?.fullName || "Nguyễn Thị Hoa"}
+        {/* Access Control Smart Button/Card */}
+        <TouchableOpacity
+          style={[
+            styles.accessControlCard,
+            { borderColor: "#a5b4fc", borderWidth: 2, marginTop: 12 },
+          ]}
+          onPress={() => router.push("/parents/access_control")}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={styles.accessControlIconBox}>
+              <MaterialIcons
+                name={isCheckIn ? "wb-sunny" : "auto-awesome"}
+                size={32}
+                color={isCheckIn ? "#FFD600" : "#2196F3"}
+              />
+            </View>
+            <View style={{ marginLeft: 12 }}>
+              <Text style={styles.accessControlTitle}>
+                {isCheckIn ? "Chào buổi sáng!" : "Hẹn gặp lại!"}
+              </Text>
+              <Text style={styles.accessControlSubtitle}>
+                {isCheckIn
+                  ? "Hãy bắt đầu một ngày tuyệt vời!"
+                  : "Cuối ngày vui vẻ!"}
               </Text>
             </View>
-            <View style={styles.teacherInfoRow}>
-              <Text style={styles.teacherLabel}>Lớp: </Text>
-              <Text style={styles.teacherValue}>{classInf?.name || "Mầm"}</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Goodbye Button */}
+        <TouchableOpacity
+          style={[
+            styles.accessControlCard,
+            { borderColor: "#a5b4fc", borderWidth: 2, marginTop: 12 },
+          ]}
+          onPress={() => router.push("/parents/goodbye_control")}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View
+              style={[
+                styles.accessControlIconBox,
+                { backgroundColor: "#e0e7ff" },
+              ]}
+            >
+              <MaterialIcons name="auto-awesome" size={32} color="#6366f1" />
             </View>
+            <View style={{ marginLeft: 12 }}>
+              <Text style={[styles.accessControlTitle, { color: "#6366f1" }]}>
+                Hẹn gặp lại!
+              </Text>
+              <Text style={styles.accessControlSubtitle}>
+                Cuối ngày vui vẻ!
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Child Info Card (Profile Bé) */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "#fff",
+            borderRadius: 16,
+            elevation: 2,
+            marginHorizontal: 16,
+            marginTop: 24,
+            padding: 10,
+            shadowColor: "#000",
+            shadowOpacity: 0.06,
+            shadowRadius: 8,
+          }}
+        >
+          <Image
+            source={require("../../assets/images/student_1.png")}
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 32,
+              borderWidth: 2,
+              borderColor: "#fff",
+              marginRight: 14,
+            }}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, color: "#222" }}>
+              Bé:{" "}
+              <Text style={{ fontWeight: "bold", color: "#1A3442" }}>
+                Nguyễn Ánh Dương
+              </Text>
+            </Text>
+            <Text style={{ fontSize: 15, color: "#222", marginTop: 2 }}>
+              Lớp:{" "}
+              <Text style={{ fontWeight: "bold", color: "#1A3442" }}>
+                Chồi Non
+              </Text>
+            </Text>
+            <Text style={{ fontSize: 15, color: "#222", marginTop: 2 }}>
+              Tuổi:{" "}
+              <Text style={{ fontWeight: "bold", color: "#1A3442" }}>4</Text>
+            </Text>
           </View>
         </View>
 
@@ -404,34 +473,31 @@ const CommentScreen = () => (
 const Drawer = createDrawerNavigator<RootParamList>();
 
 export default function App() {
-  
   const { teacher } = useTeacher();
   const { classInf } = useClass();
   const childName = classInf?.name || teacher?.fullName || "Giáo viên";
 
   return (
-    <NavigationContainer independent>
-      <Drawer.Navigator
-        drawerContent={(props) => (
-          <CustomDrawerContent {...props} childName={childName} />
-        )}
-        screenOptions={{
-          drawerStyle: styles.sidebar,
-          drawerPosition: "left",
-          headerShown: false,
-        }}
-      >
-        <Drawer.Screen name="Home" component={HomeScreen} />
-        {/* <Drawer.Screen name="Contact" component={Contact} />
+    <Drawer.Navigator
+      drawerContent={(props: any) => (
+        <CustomDrawerContent {...props} childName={childName} />
+      )}
+      screenOptions={{
+        drawerStyle: styles.sidebar,
+        drawerPosition: "left",
+        headerShown: false,
+      }}
+    >
+      <Drawer.Screen name="Home" component={HomeScreen} />
+      {/* <Drawer.Screen name="Contact" component={Contact} />
         <Drawer.Screen name="Account" component={Account} />
         <Drawer.Screen name="Post" component={Post} />
         <Drawer.Screen name="Album" component={Album} /> */}
-        <Drawer.Screen name="Message" component={Message} />
-        {/* <Drawer.Screen name="Notification" component={Notification} />
+      <Drawer.Screen name="Message" component={Message} />
+      {/* <Drawer.Screen name="Notification" component={Notification} />
         <Drawer.Screen name="Medicine" component={Medicine} />
         <Drawer.Screen name="Comment" component={Comment} /> */}
-      </Drawer.Navigator>
-    </NavigationContainer>
+    </Drawer.Navigator>
   );
 }
 
@@ -519,31 +585,6 @@ const styles = StyleSheet.create({
     color: "#1A3442",
     textAlign: "center",
   },
-
-  teacherInfoBox: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    elevation: 2,
-    padding: 16,
-    marginTop: 24,
-    marginHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-  },
-  teacherAvatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-  },
-  teacherInfoTextBox: { marginLeft: 14 },
-  teacherInfoRow: { flexDirection: "row", marginTop: 4 },
-  teacherLabel: { fontSize: 15, fontWeight: "500", color: "#333" },
-  teacherValue: { fontSize: 15, fontWeight: "bold", color: "#1A3442" },
 
   postsSection: { marginTop: 20, marginHorizontal: 16 },
   postsHeader: {
@@ -660,5 +701,36 @@ const styles = StyleSheet.create({
     borderBottomColor: "white",
     borderBottomWidth: 1,
     marginVertical: 10,
+  },
+  accessControlCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    elevation: 2,
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+  },
+  accessControlIconBox: {
+    backgroundColor: "#e0f7fa",
+    padding: 12,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+    marginTop: -24,
+    borderWidth: 3,
+    borderColor: "#fff",
+  },
+  accessControlTitle: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#1A3442",
+  },
+  accessControlSubtitle: {
+    fontSize: 13,
+    color: "#1A3442",
   },
 });
