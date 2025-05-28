@@ -1,17 +1,15 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Dimensions,
   ScrollView,
+  StyleSheet,
   ActivityIndicator,
   Linking,
 } from "react-native";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import { useNavigation } from "@react-navigation/native";
-import { router } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 // Mock Teacher model
 const Teacher = {
@@ -51,10 +49,10 @@ function useController<T>(factory: () => T): T {
 }
 
 const ContactPage = () => {
+  const router = useRouter();
   const controller = useController(() => new TeacherController());
   const [isLoading, setIsLoading] = React.useState(controller.isLoading.value);
   const [teacher, setTeacher] = React.useState(controller.teacher.value);
-  const navigation = useNavigation();
 
   useEffect(() => {
     const loadData = async () => {
@@ -78,11 +76,40 @@ const ContactPage = () => {
     }
   };
 
+  const contactLinks = [
+    {
+      icon: "house",
+      text: "71 An Phú, Thanh Khê, Đà Nẵng",
+      url: "https://maps.google.com/?q=71+An+Phú,+Thanh+Khê,+Đà+Nẵng",
+    },
+    {
+      icon: "facebook",
+      text: "https://www.facebook.com/fishman793",
+      url: "https://www.facebook.com/fishman793",
+    },
+    {
+      icon: "phone",
+      text: "Hotline nhà trường: 0962492787",
+      url: "tel:0962492787",
+    },
+    {
+      icon: "phone-in-talk",
+      text: `Hotline cô giáo: ${teacher.phoneNumber}`,
+      url: `tel:${teacher.phoneNumber}`,
+    },
+    {
+      icon: "email",
+      text: `Email cô giáo: ${teacher.email}`,
+      url: `mailto:${teacher.email}`,
+    },
+  ];
+
   return (
     <ScrollView style={styles.container}>
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#009688" />
+          <ActivityIndicator size="large" color="#4DB6AC" />
+          <Text>Đang tải thông tin...</Text>
         </View>
       ) : teacher ? (
         <View style={styles.content}>
@@ -90,11 +117,12 @@ const ContactPage = () => {
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => router.push("/teachers/home")}
+              onPress={() => router.back()}
             >
-              <MaterialIcons name="arrow-back" size={28} color="#fffff" />
+              <MaterialIcons name="arrow-back" size={28} color="#ffffff" />
               <Text style={styles.backButtonText}>Quay lại</Text>
             </TouchableOpacity>
+
             <View style={styles.headerContent}>
               <Text style={styles.headerText}>Trường Mầm Non</Text>
               <Text style={[styles.headerText, styles.headerTextOffset1]}>
@@ -110,216 +138,248 @@ const ContactPage = () => {
           <View style={styles.contactCard}>
             {/* Address Section */}
             <View style={styles.addressSection}>
-              <Text style={styles.sectionTitle}>Địa Chỉ :</Text>
-              <View style={styles.addressRow}>
-                <Text style={styles.addressLabel}>Cơ Sở 1: </Text>
-                <Text style={styles.addressText}>
-                  71 An Phú, Thanh Khê, Đà Nẵng
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="location-on" size={24} color="#4DB6AC" />
+                <Text style={styles.sectionTitle}>Thông tin liên hệ</Text>
+              </View>
+
+              {contactLinks.map((link, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.contactItem}
+                  onPress={() => handleUrlPress(link.url)}
+                >
+                  <MaterialIcons
+                    name={link.icon as any}
+                    size={20}
+                    color="#4DB6AC"
+                    style={styles.contactIcon}
+                  />
+                  <Text style={styles.contactText}>{link.text}</Text>
+                  <MaterialIcons name="open-in-new" size={16} color="#666" />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* School Info Section */}
+            <View style={styles.schoolInfoSection}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="school" size={24} color="#4DB6AC" />
+                <Text style={styles.sectionTitle}>Thông tin trường</Text>
+              </View>
+
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Tên trường:</Text>
+                <Text style={styles.infoValue}>Trường Mầm Non EduMonitor</Text>
+              </View>
+
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Thời gian hoạt động:</Text>
+                <Text style={styles.infoValue}>
+                  7:00 - 17:00 (Thứ 2 - Thứ 6)
                 </Text>
               </View>
-              <View style={styles.addressRow}>
-                <Text style={styles.addressLabel}>Cơ Sở 2: </Text>
-                <Text style={styles.addressText}>
-                  17 Trần Phú, Thanh Khê, Đà Nẵng
-                </Text>
+
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Độ tuổi:</Text>
+                <Text style={styles.infoValue}>18 tháng - 5 tuổi</Text>
               </View>
             </View>
 
-            {/* Contact Links */}
-            {[
-              {
-                icon: "house",
-                text: "71 An Phú, Thanh Khê, Đà Nẵng",
-                url: "https://maps.google.com/?q=71+An+Phú,+Thanh+Khê,+Đà+Nẵng",
-              },
-              {
-                icon: "facebook",
-                text: "https://www.facebook.com/fishman793",
-                url: "https://www.facebook.com/fishman793",
-              },
-              {
-                icon: "phone",
-                text: "Hotline nhà trường: 0962492787",
-                url: "tel:0962492787",
-              },
-              {
-                icon: "phone-in-talk",
-                text: `Hotline cô giáo: ${teacher.phoneNumber}`,
-                url: `tel:${teacher.phoneNumber}`,
-              },
-              {
-                icon: "email",
-                text: `Email cô giáo: ${teacher.email}`,
-                url: `mailto:${teacher.email}`,
-              },
-            ].map((item, index) => (
+            {/* Emergency Contacts */}
+            <View style={styles.emergencySection}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="emergency" size={24} color="#f44336" />
+                <Text style={[styles.sectionTitle, { color: "#f44336" }]}>
+                  Liên hệ khẩn cấp
+                </Text>
+              </View>
+
               <TouchableOpacity
-                key={index}
-                style={styles.contactButton}
-                onPress={() => handleUrlPress(item.url)}
+                style={styles.emergencyButton}
+                onPress={() => handleUrlPress("tel:113")}
               >
-                <View style={styles.contactButtonContent}>
-                  <MaterialIcons name={item.icon} size={30} color="#009688" />
-                  <Text
-                    style={[
-                      styles.contactButtonText,
-                      item.icon === "email" && styles.underline,
-                    ]}
-                  >
-                    {item.text}
-                  </Text>
-                </View>
+                <MaterialIcons name="local-police" size={20} color="#fff" />
+                <Text style={styles.emergencyButtonText}>Công an: 113</Text>
               </TouchableOpacity>
-            ))}
+
+              <TouchableOpacity
+                style={styles.emergencyButton}
+                onPress={() => handleUrlPress("tel:115")}
+              >
+                <MaterialIcons name="local-hospital" size={20} color="#fff" />
+                <Text style={styles.emergencyButtonText}>Y tế: 115</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       ) : (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Không có data</Text>
+          <MaterialIcons name="error-outline" size={48} color="#f44336" />
+          <Text style={styles.errorText}>Không thể tải thông tin liên hệ</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </TouchableOpacity>
         </View>
       )}
     </ScrollView>
   );
 };
 
-const { width, height } = Dimensions.get("window");
-
-export { TeacherController, Teacher };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#f8fafc",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    height: height,
+    paddingVertical: 50,
   },
   content: {
-    width: width,
-    height: height,
+    flex: 1,
   },
   header: {
-    width: width,
-    height: 380,
-    backgroundColor: "#009688", // teal
-    borderBottomRightRadius: 150,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.7,
-    shadowRadius: 3,
-    elevation: 10,
-  },
-  headerContent: {
-    paddingTop: 20,
+    backgroundColor: "#4DB6AC",
+    paddingTop: 50,
     paddingHorizontal: 20,
-    paddingBottom: 50,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
-  headerText: {
-    fontSize: 35,
-    fontWeight: "bold",
-    color: "white",
-    paddingLeft: 10,
-  },
-  headerTextOffset1: {
-    fontSize: 45,
-    paddingLeft: 50,
-    marginTop: 10,
-  },
-  headerTextOffset2: {
-    fontSize: 45,
-    paddingLeft: 120,
-  },
-  contactCard: {
-    width: width,
-    // height: 500, // Xóa dòng này để chiều cao tự động theo nội dung
-    backgroundColor: "white",
-    borderTopLeftRadius: 120,
-    borderBottomRightRadius: 120,
-    borderTopRightRadius: 30,
-    borderBottomLeftRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 7,
-    marginTop: -100, // Overlap with header
-    paddingTop: 20,
-    paddingLeft: 0, // Để căn giữa
+  backButton: {
+    flexDirection: "row",
     alignItems: "center",
-  },
-  addressSection: {
     marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-  },
-  addressRow: {
-    flexDirection: "row",
-    marginTop: 5,
-  },
-  addressLabel: {
+  backButtonText: {
+    color: "#fff",
     fontSize: 16,
-    fontWeight: "800",
+    marginLeft: 8,
   },
-  addressText: {
-    fontSize: 16,
+  headerContent: {
+    alignItems: "center",
   },
-  contactButton: {
-    width: width - 60, // Thu nhỏ lại cho cân đối
-    height: 48,
-    backgroundColor: "white",
-    borderRadius: 24,
+  headerText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  headerTextOffset1: {
+    marginLeft: 20,
+  },
+  headerTextOffset2: {
+    marginLeft: 40,
+  },
+  contactCard: {
+    margin: 20,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 2,
-    marginHorizontal: 0,
-    marginBottom: 16,
-    alignItems: "center", // Căn giữa theo chiều ngang
-    justifyContent: "center", // Căn giữa theo chiều dọc
-    alignSelf: "center",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  contactButtonContent: {
+  addressSection: {
+    marginBottom: 25,
+  },
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    height: "100%",
+    marginBottom: 15,
   },
-  contactButtonText: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginLeft: 8,
+  },
+  contactItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    backgroundColor: "#f8fafc",
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  contactIcon: {
+    marginRight: 12,
+  },
+  contactText: {
+    flex: 1,
     fontSize: 14,
-    fontWeight: "700",
-    marginLeft: 5,
+    color: "#333",
   },
-  underline: {
-    textDecorationLine: "underline",
+  schoolInfoSection: {
+    marginBottom: 25,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+    paddingTop: 20,
+  },
+  infoItem: {
+    flexDirection: "row",
+    paddingVertical: 8,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: "#666",
+    width: 120,
+  },
+  infoValue: {
+    flex: 1,
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "500",
+  },
+  emergencySection: {
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+    paddingTop: 20,
+  },
+  emergencyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f44336",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  emergencyButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginLeft: 8,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    height: height,
+    padding: 20,
   },
   errorText: {
     fontSize: 16,
+    color: "#f44336",
+    textAlign: "center",
+    marginVertical: 10,
   },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 40,
-    marginLeft: 20,
-    marginBottom: 8,
-    alignSelf: "flex-start",
+  retryButton: {
+    backgroundColor: "#4DB6AC",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 10,
   },
-  backButtonText: {
-    color: "#ffffff",
+  retryButtonText: {
+    color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
-    marginLeft: 4,
   },
 });
 

@@ -1,77 +1,61 @@
-import React from 'react';
-import { View, Image, Text } from 'react-native';
+import React from "react";
+import { View, TouchableOpacity } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
-// Component
 const NavigationBar = () => {
+  const router = useRouter();
+
+  const navItems = [
+    { icon: "home", route: "/teachers/home" },
+    { icon: "person", route: "/teachers/account_page" },
+    { icon: "photo", route: "/teachers/album" },
+    { icon: "phone", route: "/teachers/contact_page" },
+    { icon: "settings", route: "/teachers/account_page" },
+  ];
+
   return (
-    <View className="w-80 h-16 relative">
-      {/* Background Rectangle */}
-      <View
-        className="w-80 h-16 absolute rounded-2xl"
-        style={{
-          backgroundColor: 'rgba(0, 255, 255, 0.5)',
-          borderWidth: 1,
-          borderColor: 'rgba(0, 255, 255, 0.5)',
-          shadowColor: 'rgba(95, 211, 239, 0.51)',
-          shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 1,
-          shadowRadius: 43,
-          elevation: 10,
-        }}
-      />
-
-      {/* Frame with icons */}
-      <View className="w-80 h-12 absolute flex-row justify-between items-start pl-4 pt-1.5">
-        {/* Home Icon */}
-        <View className="w-11 h-11 relative">
-          <Text
-            className="w-11 h-11 absolute text-center text-sky-500 text-xl font-bold tracking-tight"
-            style={{
-              textShadowColor: 'rgba(255, 255, 255, 1)',
-              textShadowOffset: { width: -10, height: -10 },
-              textShadowRadius: 20,
-            }}
-          >
-            🏠
-          </Text>
-        </View>
-
-        {/* Card Icon */}
-        <View className="w-11 h-11 relative">
-          <Text className="w-11 h-11 absolute text-center text-black/50 text-xl font-bold tracking-tight">
-            💳
-          </Text>
-        </View>
-
-        {/* Trade Icon (dùng emoji thay cho SVG) */}
-        <View className="w-11 h-11 relative items-center justify-center">
-          <Text className="w-11 h-11 absolute text-center text-blue-500 text-xl font-bold tracking-tight">
-            💱
-          </Text>
-        </View>
-
-        {/* Contact Icon */}
-        <View className="w-11 h-11 relative">
-          <Text className="w-11 h-11 absolute text-center text-black/50 text-xl font-bold tracking-tight">
-            📞
-          </Text>
-        </View>
-
-        {/* Setting Icon */}
-        <View className="w-11 h-11 relative">
-          <Text className="w-11 h-11 absolute text-center text-black/50 text-xl font-bold tracking-tight">
-            ⚙️
-          </Text>
-        </View>
-      </View>
-
-      {/* Facial Recognition Image */}
-      <View className="absolute" style={{ left: 157, top: 13 }}>
-        <Image
-          source={require('../../assets/images/facialRecognition.png')}
-          className="w-7 h-7"
-        />
-      </View>
+    <View
+      style={{
+        width: 320,
+        height: 64,
+        backgroundColor: "rgba(77, 182, 172, 0.9)",
+        borderRadius: 16,
+        flexDirection: "row",
+        justifyContent: "space-around",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        position: "absolute",
+        bottom: 20,
+        left: "50%",
+        transform: [{ translateX: -160 }],
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        elevation: 8,
+      }}
+    >
+      {navItems.map((item, index) => (
+        <TouchableOpacity
+          key={index}
+          onPress={() => router.push(item.route as any)}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor:
+              index === 0 ? "rgba(255,255,255,0.2)" : "transparent",
+          }}
+        >
+          <MaterialIcons
+            name={item.icon as any}
+            size={24}
+            color={index === 0 ? "#fff" : "rgba(255,255,255,0.7)"}
+          />
+        </TouchableOpacity>
+      ))}
     </View>
   );
 };

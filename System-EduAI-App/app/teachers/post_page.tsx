@@ -1,97 +1,65 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   FlatList,
-  StyleSheet,
-  Dimensions,
   ActivityIndicator,
+  StyleSheet,
+  TextInput,
+  Image,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
-// Định nghĩa type cho Post
-type Post = {
+interface Post {
   id: string;
-  title: string;
-  description: string;
-  tag: string;
   image: any;
-};
-
-// Placeholder API function (replace with actual API call)
-const fetchPosts = async (): Promise<Post[]> => {
-  // Simulated API call
-  return [
-    {
-      id: "1",
-      title: "Montess",
-      description: "Cho bé từ nhỏ đến lớn",
-      tag: "Phương pháp Montess",
-      image: require("../../assets/images/montess.png"),
-    },
-    {
-      id: "2",
-      title: "Ăn uống",
-      description: "Cho bé từ 1 đến 3 tuổi",
-      tag: "Cách ăn uống",
-      image: require("../../assets/images/support1.png"),
-    },
-    {
-      id: "3",
-      title: "Montess 2",
-      description: "Cho bé từ nhỏ đến lớn",
-      tag: "Phương pháp Montess",
-      image: require("../../assets/images/montess.png"),
-    },
-    {
-      id: "4",
-      title: "Ăn uống 2",
-      description: "Cho bé từ 1 đến 3 tuổi",
-      tag: "Cách ăn uống",
-      image: require("../../assets/images/support1.png"),
-    },
-  ];
-};
-
-// PostItem Component
-const PostItem = ({ post }: { post: Post }) => {
-  return (
-    <TouchableOpacity style={styles.postItem}>
-      <View style={styles.postImageContainer}>
-        <Text style={styles.postTitle}>{post.title.split(" ")[0]}</Text>
-        <Text style={styles.postTitle}>{post.title.split(" ")[1]}</Text>
-        <Text style={styles.postDescription}>{post.description}</Text>
-      </View>
-      <View style={styles.postFooter}>
-        <View style={styles.postTag}>
-          <Text style={styles.postTagText}>{post.tag}</Text>
-        </View>
-        <Text style={styles.postDetail}>Xem chi tiết</Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
+  title: string;
+  subtitle: string;
+  tag: string;
+}
 
 const PostPage = () => {
+  const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const postData = await fetchPosts();
-        setPosts(postData);
-        setIsLoading(false);
-      } catch (error) {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
+    setTimeout(() => {
+      setPosts([
+        {
+          id: "1",
+          image: require("../../assets/images/montess.png"),
+          title: "Montess",
+          subtitle: "Cho bé từ nhỏ đến lớn",
+          tag: "Phương pháp Montess",
+        },
+        {
+          id: "2",
+          image: require("../../assets/images/support1.png"),
+          title: "Ăn uống",
+          subtitle: "Cho bé từ 1 đến 3 tuổi",
+          tag: "Cách ăn uống",
+        },
+        {
+          id: "3",
+          image: require("../../assets/images/montess.png"),
+          title: "Montess",
+          subtitle: "Cho bé từ nhỏ đến lớn",
+          tag: "Phương pháp Montess",
+        },
+        {
+          id: "4",
+          image: require("../../assets/images/support1.png"),
+          title: "Dinh dưỡng",
+          subtitle: "Cho bé từ 2 đến 4 tuổi",
+          tag: "Dinh dưỡng",
+        },
+      ]);
+      setIsLoading(false);
+    }, 1000);
   }, []);
 
   if (isLoading) {
@@ -105,7 +73,7 @@ const PostPage = () => {
   if (posts.length === 0) {
     return (
       <View style={styles.center}>
-        <Text style={styles.noDataText}>Không có dữ liệu</Text>
+        <Text style={styles.noDataText}>Không có bài viết nào</Text>
       </View>
     );
   }
@@ -115,6 +83,30 @@ const PostPage = () => {
     pairedPosts.push(posts.slice(i, i + 2));
   }
 
+  const renderPostPair = ({ item }: { item: Post[] }) => (
+    <View style={styles.postRow}>
+      {item.map((post) => (
+        <TouchableOpacity
+          key={post.id}
+          style={styles.postCard}
+          onPress={() => {
+            // Handle post tap
+            console.log("Post tapped:", post.title);
+          }}
+        >
+          <Image source={post.image} style={styles.postImage} />
+          <View style={styles.postContent}>
+            <Text style={styles.postTitle}>{post.title}</Text>
+            <Text style={styles.postSubtitle}>{post.subtitle}</Text>
+            <View style={styles.tagContainer}>
+              <Text style={styles.tagText}>{post.tag}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -123,14 +115,21 @@ const PostPage = () => {
           <Ionicons name="arrow-back" size={25} color="#000" />
         </TouchableOpacity>
         <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#000" style={styles.searchIcon} />
+          <Ionicons
+            name="search-outline"
+            size={20}
+            color="#000"
+            style={styles.searchIcon}
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Tìm Kiếm"
             placeholderTextColor="#000"
           />
         </View>
-        <TouchableOpacity onPress={() => router.push("/teachers/notification_page")}>
+        <TouchableOpacity
+          onPress={() => router.push("/teachers/notification_page")}
+        >
           <Ionicons name="notifications-outline" size={25} color="#26A69A" />
         </TouchableOpacity>
       </View>
@@ -149,23 +148,14 @@ const PostPage = () => {
           <Text style={styles.dropdownText}>Ngày</Text>
           <Ionicons name="chevron-down" size={20} color="#000" />
         </View>
-        <View style={styles.dropdown}>
-          <Text style={styles.dropdownText}>Loại</Text>
-          <Ionicons name="chevron-down" size={20} color="#000" />
-        </View>
       </View>
 
       <View style={styles.dividerLine} />
 
-      {/* Post List */}
+      {/* Posts List */}
       <FlatList
         data={pairedPosts}
-        renderItem={({ item }) => (
-          <View style={styles.postRow}>
-            <PostItem post={item[0]} />
-            {item[1] && <PostItem post={item[1]} />}
-          </View>
-        )}
+        renderItem={renderPostPair}
         keyExtractor={(_, index) => index.toString()}
         contentContainerStyle={styles.postList}
         scrollEnabled={false}
@@ -174,105 +164,134 @@ const PostPage = () => {
   );
 };
 
-const { width } = Dimensions.get("window");
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  noDataText: {
+    fontSize: 18,
+    color: "#666",
+    marginBottom: 20,
+  },
+  refreshButton: {
+    backgroundColor: "#4DB6AC",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 35,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    marginTop: 50,
   },
   searchContainer: {
-    width: 260,
-    height: 30,
-    backgroundColor: "#E0F2F1",
-    borderRadius: 5,
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 10,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 20,
+    marginHorizontal: 16,
+    paddingHorizontal: 12,
   },
-  searchIcon: { marginLeft: 10 },
-  searchInput: { color: "#000", marginLeft: 5, flex: 1 },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 16,
+  },
   filterContainer: {
     flexDirection: "row",
     alignItems: "center",
-    height: 50,
-    paddingHorizontal: 20,
-  },
-  divider: { fontSize: 20, marginHorizontal: 10 },
-  dropdown: {
-    height: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: "#fff",
-    borderRadius: 5,
+  },
+  divider: {
+    marginHorizontal: 12,
+    fontSize: 16,
+    color: "#ccc",
+  },
+  dropdown: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-    marginHorizontal: 5,
+    marginRight: 16,
   },
-  dropdownText: { fontSize: 15 },
-  dividerLine: { height: 1, backgroundColor: "#000", marginVertical: 10 },
-  postList: { paddingHorizontal: 20, paddingVertical: 10 },
+  dropdownText: {
+    fontSize: 14,
+    color: "#000",
+    marginRight: 4,
+  },
+  dividerLine: {
+    height: 1,
+    backgroundColor: "#e0e0e0",
+    marginHorizontal: 16,
+  },
+  postList: {
+    padding: 16,
+  },
   postRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  postItem: {
-    width: (width - 60) / 2, // Adjust for padding and spacing
+  postCard: {
+    flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 15,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    overflow: "hidden",
   },
-  postImageContainer: {
-    height: 100,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-    backgroundColor: "#f0f0f0", // Placeholder background (since image is not used)
-    justifyContent: "center",
-    alignItems: "center",
+  postImage: {
+    width: "100%",
+    height: 120,
+    resizeMode: "cover",
+  },
+  postContent: {
+    padding: 12,
   },
   postTitle: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: "bold",
+    color: "#333",
+    marginBottom: 4,
   },
-  postDescription: {
-    fontSize: 15,
+  postSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
   },
-  postFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 10,
-  },
-  postTag: {
+  tagContainer: {
     backgroundColor: "#26A69A",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignSelf: "flex-start",
   },
-  postTagText: {
-    color: "#fff",
+  tagText: {
     fontSize: 12,
+    color: "#fff",
     fontWeight: "bold",
   },
-  postDetail: {
-    color: "#2196F3",
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  noDataText: { fontSize: 16, color: "#004D40" },
 });
 
 export default PostPage;

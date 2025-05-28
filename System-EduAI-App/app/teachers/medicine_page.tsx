@@ -1,286 +1,741 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView, ImageBackground, FlatList, ListRenderItem } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  Button,
+  ListRenderItem,
+  Modal,
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../context/AuthContext";
+import { authApi, publicApi } from "../services/api";
 
-// Interface cho MedicineReminder
-interface MedicineReminder {
-  comment: string;
-  currentStatus: string;
-  createdDay: string;
-  createdMonth: string;
-  createdYear: string;
-}
-
-// Interface cho Child
-interface Child {
-  id: string;
+// Define local interfaces to avoid import issues
+interface GrowthRecordDTO {
+  growthRecordId?: number;
+  studentId: number;
+  date: string;
   height: number;
   weight: number;
+  notes?: string;
 }
 
-// Interface cho route params
+interface CreateHealthReminderDTO {
+  title: string;
+  content: string;
+  reminderDate: string;
+  type: string;
+}
+
+interface AnnouncementDTO {
+  announcementId?: number;
+  title: string;
+  content: string;
+  type: string;
+  createdAt?: string;
+  studentId?: number;
+  classroomId?: number;
+}
+
+interface HealthInfoDTO {
+  studentId: number;
+  bloodType?: string;
+  allergies?: string;
+  currentWeight?: number;
+  currentHeight?: number;
+  healthCondition?: string;
+  notes?: string;
+  medications?: string;
+  medicalHistory?: string;
+  emergencyContact?: string;
+  doctorNotes?: string;
+}
+
+// Interface cho Child (đã có, giữ nguyên nếu phù hợp)
+interface Child {
+  id: string; // This will be studentId (number) for API calls
+  name?: string; // Optional: for display
+  height?: number; // from params, if any
+  weight?: number; // from params, if any
+}
+
+// Interface cho route params (đã có, giữ nguyên)
 type MedicinePageRouteParams = {
-  child: Child;
+  child: Child; // Should be stringified JSON or individual params
 };
-
-// Mock MedicineReminderController
-class MedicineReminderController {
-  medicineReminder: { value: MedicineReminder[] } = { value: [] };
-
-  async fetchMedicineReminder(childId: string): Promise<MedicineReminder[]> {
-    // Mock data fetching
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        this.medicineReminder.value = [
-          {
-            comment: 'Uống thuốc cảm cúm',
-            currentStatus: 'Ốm',
-            createdDay: '25',
-            createdMonth: '05',
-            createdYear: '2025',
-          },
-          {
-            comment: 'Uống vitamin C',
-            currentStatus: 'Bình thường',
-            createdDay: '24',
-            createdMonth: '05',
-            createdYear: '2025',
-          },
-        ];
-        resolve(this.medicineReminder.value);
-      }, 1000);
-    });
-  }
-}
-
-const controllerRef = React.useRef(new MedicineReminderController());
-const controller = controllerRef.current;
 
 const MedicinePage = () => {
-  const navigation = useNavigation();
-  const route = useRoute<RouteProp<Record<string, MedicinePageRouteParams>, string>>();
-  const child = (route.params as MedicinePageRouteParams)?.child ?? { id: '', height: 0, weight: 0 };
-  const [medicineReminders, setMedicineReminders] = useState<MedicineReminder[]>(controller.medicineReminder.value);
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const { token } = useAuth();
 
-  // Periodic data fetching
+  const [child, setChild] = useState<Child | null>(null);
+  const [growthRecords, setGrowthRecords] = useState<GrowthRecordDTO[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
+  // States for creating/editing Growth Record
+  const [editingGrowthRecordId, setEditingGrowthRecordId] = useState<
+    number | null
+  >(null);
+  const [newRecordDate, setNewRecordDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [newHeight, setNewHeight] = useState("");
+  const [newWeight, setNewWeight] = useState("");
+  const [newGrowthNotes, setNewGrowthNotes] = useState("");
+
+  // States for creating Health Reminder
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [reminderContent, setReminderContent] = useState("");
+
+  // Thêm states cho vaccination và health statistics
+  const [healthStats, setHealthStats] = useState<any>(null);
+  const [latestGrowthRecord, setLatestGrowthRecord] =
+    useState<GrowthRecordDTO | null>(null);
+  const [vaccinationHistory, setVaccinationHistory] = useState<any[]>([]);
+  const [showVaccinationForm, setShowVaccinationForm] = useState(false);
+  const [newVaccination, setNewVaccination] = useState({
+    vaccineName: "",
+    vaccinationDate: new Date().toISOString().split("T")[0],
+    notes: "",
+  });
+
+  // Thêm states cho health record và chart data
+  const [healthRecord, setHealthRecord] = useState<HealthInfoDTO | null>(null);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [showHealthRecordForm, setShowHealthRecordForm] = useState(false);
+  const [showChartModal, setShowChartModal] = useState(false);
+
+  // States cho health record form
+  const [healthRecordData, setHealthRecordData] = useState({
+    allergies: "",
+    medications: "",
+    medicalHistory: "",
+    bloodType: "",
+    emergencyContact: "",
+    doctorNotes: "",
+  });
+
+  // Thêm states cho việc chọn học sinh
+  const [students, setStudents] = useState<any[]>([]);
+  const [showStudentPicker, setShowStudentPicker] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+
   useEffect(() => {
-    const fetchData = async () => {
-      const data = await controller.fetchMedicineReminder(child.id);
-      setMedicineReminders(data);
+    // Safely parse child from params
+    if (params.child) {
+      try {
+        const parsedChild = JSON.parse(params.child as string) as Child;
+        setChild(parsedChild);
+      } catch (e) {
+        console.error("Failed to parse child from params:", e);
+        // Fallback or handle error if child id is directly passed
+        if (params.childId) {
+          setChild({
+            id: params.childId as string,
+            name: (params.childName as string) || "N/A",
+          });
+        } else {
+          Alert.alert("Lỗi", "Không có thông tin học sinh.");
+          router.back();
+        }
+      }
+    } else if (params.childId) {
+      // Fallback if childId is passed directly
+      setChild({
+        id: params.childId as string,
+        name: (params.childName as string) || "N/A",
+      });
+    } else {
+      Alert.alert("Lỗi", "Không có thông tin học sinh.");
+      router.back();
+    }
+  }, [params]);
+
+  const fetchGrowthRecords = useCallback(
+    async (studentId: number) => {
+      if (!token) {
+        Alert.alert("Lỗi", "Yêu cầu đăng nhập.");
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const data = await authApi.getGrowthRecords(token, studentId);
+        setGrowthRecords(data || []);
+      } catch (error) {
+        console.error("Error fetching growth records:", error);
+        Alert.alert("Lỗi", "Không thể tải dữ liệu tăng trưởng.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [token]
+  );
+
+  const fetchHealthData = useCallback(
+    async (studentId: number) => {
+      if (!token) return;
+
+      try {
+        // Fetch health statistics
+        const stats = await authApi.getHealthStatistics(token, studentId);
+        setHealthStats(stats);
+
+        // Fetch latest growth record
+        const latest = await authApi.getLatestGrowthRecord(token, studentId);
+        setLatestGrowthRecord(latest);
+
+        // Fetch vaccination history
+        const vaccinations = await authApi.getVaccinationHistory(
+          token,
+          studentId
+        );
+        setVaccinationHistory(vaccinations);
+      } catch (error) {
+        console.error("Error fetching health data:", error);
+      }
+    },
+    [token]
+  );
+
+  const fetchHealthRecord = useCallback(
+    async (studentId: number) => {
+      if (!token) return;
+
+      try {
+        setIsLoading(true);
+        const record = await authApi.getHealthRecord(token, studentId);
+        setHealthRecord(record);
+
+        if (record) {
+          setHealthRecordData({
+            allergies: record.allergies || "",
+            medications: record.medications || "",
+            medicalHistory: record.medicalHistory || "",
+            bloodType: record.bloodType || "",
+            emergencyContact: record.emergencyContact || "",
+            doctorNotes: record.doctorNotes || "",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching health record:", error);
+        Alert.alert("Lỗi", "Không thể tải hồ sơ sức khỏe.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [token]
+  );
+
+  const fetchChartData = useCallback(
+    async (studentId: number) => {
+      if (!token) return;
+
+      try {
+        const data = await authApi.getGrowthChartData(token, studentId);
+        setChartData(data);
+      } catch (error) {
+        console.error("Error fetching chart data:", error);
+      }
+    },
+    [token]
+  );
+
+  useEffect(() => {
+    if (child && child.id) {
+      const studentIdNumber = parseInt(child.id, 10);
+      if (!isNaN(studentIdNumber)) {
+        fetchGrowthRecords(studentIdNumber);
+        fetchHealthData(studentIdNumber);
+        fetchHealthRecord(studentIdNumber);
+        fetchChartData(studentIdNumber);
+      }
+    }
+  }, [
+    child,
+    fetchGrowthRecords,
+    fetchHealthData,
+    fetchHealthRecord,
+    fetchChartData,
+  ]);
+
+  const resetGrowthForm = () => {
+    setEditingGrowthRecordId(null);
+    setNewRecordDate(new Date().toISOString().split("T")[0]);
+    setNewHeight("");
+    setNewWeight("");
+    setNewGrowthNotes("");
+  };
+
+  const handleSaveGrowthRecord = async () => {
+    if (
+      !token ||
+      !child ||
+      !child.id ||
+      !newHeight ||
+      !newWeight ||
+      !newRecordDate
+    ) {
+      Alert.alert(
+        "Lỗi",
+        "Vui lòng nhập đầy đủ thông tin tăng trưởng (ngày, chiều cao, cân nặng)."
+      );
+      return;
+    }
+    const studentIdNumber = parseInt(child.id, 10);
+    if (isNaN(studentIdNumber)) {
+      Alert.alert("Lỗi", "ID học sinh không hợp lệ.");
+      return;
+    }
+
+    const recordPayload: GrowthRecordDTO = {
+      // Ensure growthRecordId is not part of the payload for create
+      ...(editingGrowthRecordId && { growthRecordId: editingGrowthRecordId }),
+      studentId: studentIdNumber,
+      recordDate: newRecordDate,
+      height: parseFloat(newHeight),
+      weight: parseFloat(newWeight),
+      notes: newGrowthNotes,
     };
 
-    fetchData(); // Initial fetch
-    const interval = setInterval(fetchData, 5000); // Fetch every 5 seconds
+    setIsLoading(true);
+    try {
+      let result: GrowthRecordDTO | null = null;
+      if (editingGrowthRecordId) {
+        result = await authApi.updateGrowthRecord(
+          token,
+          editingGrowthRecordId,
+          recordPayload
+        );
+        if (result) {
+          Alert.alert("Thành công", "Đã cập nhật bản ghi tăng trưởng.");
+        }
+      } else {
+        // For creation, ensure growthRecordId is not sent if backend auto-generates it
+        const createPayload = { ...recordPayload };
+        delete createPayload.growthRecordId;
+        result = await authApi.createGrowthRecord(token, createPayload);
+        if (result) {
+          Alert.alert("Thành công", "Đã thêm bản ghi tăng trưởng.");
+        }
+      }
 
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, [child.id]);
+      if (result) {
+        fetchGrowthRecords(studentIdNumber); // Refresh list
+        resetGrowthForm(); // Clear form and reset editing state
+      } else {
+        Alert.alert(
+          "Lỗi",
+          editingGrowthRecordId
+            ? "Không thể cập nhật bản ghi."
+            : "Không thể thêm bản ghi."
+        );
+      }
+    } catch (error) {
+      console.error("Error saving growth record:", error);
+      Alert.alert(
+        "Lỗi",
+        `Lỗi khi ${
+          editingGrowthRecordId ? "cập nhật" : "thêm"
+        } bản ghi tăng trưởng.`
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const renderMedicineItem: ListRenderItem<MedicineReminder> = ({ item }) => (
-    <View style={styles.medicineItem}>
-      <Text style={styles.medicineTitle}>Dặn dò</Text>
-      <Text style={styles.medicineComment}>{item.comment}</Text>
-      <View style={styles.medicineStatusRow}>
-        <Text style={styles.medicineStatusLabel}>Hiện trạng: </Text>
-        <Text style={styles.medicineStatus}>{item.currentStatus}</Text>
+  const handleEditGrowthRecord = (record: GrowthRecordDTO) => {
+    setEditingGrowthRecordId(record.growthRecordId!);
+    setNewRecordDate(record.recordDate.split("T")[0]); // Ensure date is in YYYY-MM-DD
+    setNewHeight(record.height.toString());
+    setNewWeight(record.weight.toString());
+    setNewGrowthNotes(record.notes || "");
+    // Scroll to form or focus first input if desired
+  };
+
+  const handleCreateHealthReminder = async () => {
+    if (!token || !child || !child.id || !reminderTitle || !reminderContent) {
+      Alert.alert("Lỗi", "Vui lòng nhập tiêu đề và nội dung lời nhắc.");
+      return;
+    }
+    const studentIdNumber = parseInt(child.id, 10);
+    if (isNaN(studentIdNumber)) {
+      Alert.alert("Lỗi", "ID học sinh không hợp lệ.");
+      return;
+    }
+
+    const reminder: CreateHealthReminderDTO = {
+      // Using CreateHealthReminderDTO
+      title: reminderTitle,
+      content: reminderContent,
+      type: "HEALTH_REMINDER", // Ensure this type matches backend expectations for AnnouncementDTO
+    };
+
+    setIsLoading(true);
+    try {
+      const result: AnnouncementDTO | null = await authApi.createHealthReminder(
+        token,
+        reminder,
+        studentIdNumber
+      );
+      if (result && result.announcementId) {
+        // Check for a valid response
+        Alert.alert(
+          "Thành công",
+          "Đã tạo lời nhắc sức khỏe (dặn thuốc).\nLời nhắc này sẽ được gửi như một thông báo."
+        );
+        setReminderTitle("");
+        setReminderContent("");
+      } else {
+        Alert.alert("Lỗi", "Không thể tạo lời nhắc sức khỏe.");
+      }
+    } catch (error) {
+      console.error("Error creating health reminder:", error);
+      Alert.alert("Lỗi", "Lỗi khi tạo lời nhắc sức khỏe.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteGrowthRecord = async (growthRecordId: number) => {
+    if (!token) {
+      Alert.alert("Lỗi", "Yêu cầu đăng nhập.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await authApi.deleteGrowthRecord(token, growthRecordId);
+      if (result) {
+        Alert.alert("Thành công", "Đã xóa bản ghi tăng trưởng.");
+        fetchGrowthRecords(parseInt(child.id, 10)); // Refresh list
+      } else {
+        Alert.alert("Lỗi", "Không thể xóa bản ghi tăng trưởng.");
+      }
+    } catch (error) {
+      console.error("Error deleting growth record:", error);
+      Alert.alert("Lỗi", "Lỗi khi xóa bản ghi tăng trưởng.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddVaccination = async () => {
+    if (
+      !token ||
+      !child ||
+      !newVaccination.vaccineName ||
+      !newVaccination.vaccinationDate
+    ) {
+      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin tiêm chủng.");
+      return;
+    }
+
+    const studentIdNumber = parseInt(child.id, 10);
+    if (isNaN(studentIdNumber)) {
+      Alert.alert("Lỗi", "ID học sinh không hợp lệ.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const success = await authApi.addVaccinationRecord(
+        token,
+        studentIdNumber,
+        newVaccination
+      );
+      if (success) {
+        Alert.alert("Thành công", "Đã thêm thông tin tiêm chủng.");
+        setNewVaccination({
+          vaccineName: "",
+          vaccinationDate: new Date().toISOString().split("T")[0],
+          notes: "",
+        });
+        setShowVaccinationForm(false);
+        fetchHealthData(studentIdNumber);
+      } else {
+        Alert.alert("Lỗi", "Không thể thêm thông tin tiêm chủng.");
+      }
+    } catch (error) {
+      console.error("Error adding vaccination:", error);
+      Alert.alert("Lỗi", "Lỗi khi thêm thông tin tiêm chủng.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveHealthRecord = async () => {
+    if (!token || !child) {
+      Alert.alert("Lỗi", "Không tìm thấy thông tin học sinh.");
+      return;
+    }
+
+    const studentIdNumber = parseInt(child.id, 10);
+    if (isNaN(studentIdNumber)) {
+      Alert.alert("Lỗi", "ID học sinh không hợp lệ.");
+      return;
+    }
+
+    // Kiểm tra ít nhất một trường được điền
+    const hasData = Object.values(healthRecordData).some(
+      (value) => value.trim() !== ""
+    );
+    if (!hasData) {
+      Alert.alert("Lỗi", "Vui lòng điền ít nhất một thông tin sức khỏe.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const healthInfoDTO = {
+        studentId: studentIdNumber,
+        ...healthRecordData,
+      };
+
+      console.log(
+        "Saving health record for student:",
+        studentIdNumber,
+        healthInfoDTO
+      );
+
+      const result = await authApi.createOrUpdateHealthRecord(
+        token,
+        healthInfoDTO
+      );
+      if (result) {
+        Alert.alert(
+          "Thành công",
+          `Đã lưu hồ sơ sức khỏe cho học sinh ${child.name || child.id}.`
+        );
+        setHealthRecord(result);
+        setShowHealthRecordForm(false);
+      } else {
+        Alert.alert("Lỗi", "Không thể lưu hồ sơ sức khỏe.");
+      }
+    } catch (error) {
+      console.error("Error saving health record:", error);
+      Alert.alert("Lỗi", "Lỗi khi lưu hồ sơ sức khỏe.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderGrowthRecordItem: ListRenderItem<GrowthRecordDTO> = ({
+    item,
+  }) => (
+    <View style={styles.recordItem}>
+      <View style={styles.recordDetails}>
+        <Text style={styles.recordDate}>
+          Ngày: {item.recordDate.split("T")[0]}
+        </Text>
+        <Text>Chiều cao: {item.height} cm</Text>
+        <Text>Cân nặng: {item.weight} kg</Text>
+        {item.notes && <Text>Ghi chú: {item.notes}</Text>}
       </View>
-      <Text style={styles.medicineDate}>
-        {`${item.createdDay}/${item.createdMonth}/${item.createdYear}`}
-      </Text>
+      <View style={styles.recordActions}>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => handleEditGrowthRecord(item)}
+        >
+          <Ionicons name="pencil" size={20} color="#4DB6AC" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDeleteGrowthRecord(item.growthRecordId!)}
+        >
+          <Ionicons name="trash" size={20} color="#E57373" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const isConnected = await publicApi.testConnection();
+        if (!isConnected) {
+          setConnectionError(
+            "Không thể kết nối đến máy chủ. Một số tính năng có thể không hoạt động."
+          );
+        } else {
+          setConnectionError(null);
+        }
+      } catch (error) {
+        setConnectionError("Lỗi kiểm tra kết nối mạng.");
+      }
+    };
+
+    checkConnection();
+  }, []);
+
+  // Cập nhật function để fetch danh sách học sinh với fallback
+  const fetchStudents = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      // Thử gọi API trước
+      const studentList = await authApi.getStudents(token);
+      if (studentList && studentList.length > 0) {
+        setStudents(studentList);
+      } else {
+        // Sử dụng mock data khi API không có
+        setStudents([
+          { id: 1, name: "Nguyễn Văn A", className: "Lớp Mầm" },
+          { id: 2, name: "Trần Thị B", className: "Lớp Chồi" },
+          { id: 3, name: "Lê Văn C", className: "Lớp Lá" },
+          { id: 4, name: "Phạm Thị D", className: "Lớp Mầm" },
+          { id: 5, name: "Hoàng Văn E", className: "Lớp Chồi" },
+        ]);
+      }
+    } catch (error) {
+      console.warn("API students not available, using mock data");
+      // Luôn fallback về mock data khi lỗi
+      setStudents([
+        { id: 1, name: "Nguyễn Văn A", className: "Lớp Mầm" },
+        { id: 2, name: "Trần Thị B", className: "Lớp Chồi" },
+        { id: 3, name: "Lê Văn C", className: "Lớp Lá" },
+        { id: 4, name: "Phạm Thị D", className: "Lớp Mầm" },
+        { id: 5, name: "Hoàng Văn E", className: "Lớp Chồi" },
+      ]);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchStudents();
+
+    // Nếu có thông tin học sinh từ params, set làm selected
+    if (params.child) {
+      try {
+        const parsedChild = JSON.parse(params.child as string);
+        setSelectedStudent(parsedChild);
+        setChild(parsedChild);
+      } catch (e) {
+        // Handle parsing error - không làm gì nếu parse fail
+      }
+    } else if (params.childId) {
+      // Fallback nếu chỉ có childId
+      const mockStudent = {
+        id: params.childId as string,
+        name: (params.childName as string) || `Student ${params.childId}`,
+      };
+      setSelectedStudent(mockStudent);
+      setChild(mockStudent);
+    }
+  }, [fetchStudents, params]);
+
+  const handleSelectStudent = (student: any) => {
+    setSelectedStudent(student);
+    setChild({
+      id: student.id.toString(),
+      name: student.name,
+    });
+    setShowStudentPicker(false);
+
+    // Reset form data khi chọn học sinh mới
+    resetGrowthForm();
+    setHealthRecordData({
+      allergies: "",
+      medications: "",
+      medicalHistory: "",
+      bloodType: "",
+      emergencyContact: "",
+      doctorNotes: "",
+    });
+    setHealthRecord(null);
+    setGrowthRecords([]);
+  };
+
+  // Add safe navigation helpers
+  const safeNavigateBack = () => {
+    try {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/teachers/home");
+      }
+    } catch (error) {
+      console.warn("Navigation error:", error);
+      router.replace("/teachers/home");
+    }
+  };
+
+  if (isLoading && growthRecords.length === 0 && !child) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#4DB6AC" />
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <ScrollView>
-        {/* Image Header */}
-        <ImageBackground
-          source={require('../../assets/images/imageinfor.png')} // Adjust path as needed
-          style={styles.headerImage}
+    <ScrollView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
         >
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <MaterialIcons name="arrow-back-ios" size={25} color="white" />
-            </TouchableOpacity>
-          </View>
-        </ImageBackground>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Dinh Dưỡng & Sức Khỏe</Text>
+      </View>
 
-        {/* Health Section */}
-        <View style={styles.healthContainer}>
-          <View style={styles.healthContent}>
-            {/* Health Info */}
-            <View style={styles.healthHeader}>
-              <View style={styles.healthText}>
-                <Text style={styles.healthTitle}>Sức Khỏe</Text>
-                <Text style={styles.healthSubtitle}>Cảm cúm</Text>
-              </View>
-              <View style={styles.spacer} />
-              <View style={styles.attentionBadge}>
-                <Text style={styles.attentionText}>Cần quan tâm kỹ</Text>
-                <MaterialIcons name="star" size={15} color="white" style={styles.starIcon} />
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* Child Info */}
-            <View style={styles.infoRow}>
-              <View style={styles.infoItem}>
-                <MaterialIcons name="emoji-people" size={30} color="#26a69a" />
-                <Text style={styles.infoValue}>{`${child.height} cm`}</Text>
-                <Text style={styles.infoLabel}>Chiều Cao</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <MaterialIcons name="scale" size={30} color="#26a69a" />
-                <Text style={styles.infoValue}>{`${child.weight} kg`}</Text>
-                <Text style={styles.infoLabel}>Cân Nặng</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <MaterialIcons name="person-pin" size={30} color="#26a69a" />
-                <Text style={styles.infoValue}>Ốm</Text>
-                <Text style={styles.infoLabel}>Hiện Trạng</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <MaterialIcons name="notification-important" size={30} color="#26a69a" />
-                <Text style={styles.infoValue}>10h trưa</Text>
-                <Text style={styles.infoLabel}>Nhắc Thuốc</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* Medicine Reminders List */}
-            <FlatList
-              data={medicineReminders}
-              renderItem={renderMedicineItem}
-              keyExtractor={(_item, index) => index.toString()}
-              scrollEnabled={false}
-            />
-          </View>
-        </View>
-      </ScrollView>
-    </View>
+      {/* Content */}
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>Chức năng đang phát triển</Text>
+        <Text style={styles.description}>
+          Tính năng quản lý dinh dưỡng và sức khỏe sẽ được cập nhật trong phiên
+          bản tiếp theo.
+        </Text>
+      </View>
+    </ScrollView>
   );
 };
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: "#f8fafc",
   },
-  headerImage: {
-    width: width,
-    height: 280,
+  header: {
+    backgroundColor: "#4DB6AC",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingTop: 50,
   },
-  headerContent: {
-    paddingTop: 20,
-    paddingLeft: 10,
+  backButton: {
+    marginRight: 16,
   },
-  healthContainer: {
-    marginTop: -40,
-    width: width,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
-    paddingHorizontal: 30,
-    paddingVertical: 25,
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
   },
-  healthContent: {
-    flex: 1,
+  content: {
+    padding: 20,
   },
-  healthHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 10,
   },
-  healthText: {
-    flexDirection: 'column',
-  },
-  healthTitle: {
+  description: {
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  healthSubtitle: {
-    fontSize: 14,
-    color: 'black',
-  },
-  spacer: {
-    flex: 1,
-  },
-  attentionBadge: {
-    width: 140,
-    backgroundColor: '#26a69a', // teal[300]
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 5,
-    marginRight: 15,
-  },
-  attentionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'white',
-  },
-  starIcon: {
-    marginLeft: 5,
-  },
-  divider: {
-    borderBottomColor: 'rgba(0, 0, 0, 0.54)', // Colors.black45
-    borderBottomWidth: 1,
-    marginVertical: 5,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  infoItem: {
-    alignItems: 'center',
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  infoLabel: {
-    fontSize: 12,
-  },
-  medicineItem: {
-    width: width - 60, // Account for padding
-    height: 150,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 5,
-    padding: 10,
-    marginVertical: 7.5,
-  },
-  medicineTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  medicineComment: {
-    fontSize: 13,
-    marginTop: 5,
-  },
-  medicineStatusRow: {
-    flexDirection: 'row',
-    marginTop: 5,
-  },
-  medicineStatusLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  medicineStatus: {
-    fontSize: 13,
-  },
-  medicineDate: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginTop: 10,
+    color: "#666",
+    lineHeight: 24,
   },
 });
 

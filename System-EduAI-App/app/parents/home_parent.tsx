@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,120 +9,30 @@ import {
   FlatList,
   ActivityIndicator,
   StyleSheet,
+  Alert,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import {
-  DrawerContentScrollView,
-  DrawerItem,
-  DrawerContentComponentProps,
-  createDrawerNavigator,
-} from "@react-navigation/drawer";
-import { NavigationContainer } from "@react-navigation/native";
-import { DrawerNavigationProp } from "@react-navigation/drawer";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-// import Contact from './contact_page'; 
-// import Account from './account_page';
-// import Post from './post_page';
-// import Album from './album';
-import Message from '././message_parent';
-// import Notification from './notification_page';
-// import Medicine from './medicine_page';
-// import Comment from './comment';
 
+// Import từ file cùng thư mục
+import { publicApi } from "../services/api";
+import { useTeacher } from "../hooks/useTeacher";
+import { useClass } from "../hooks/useClass";
+import { useNotifications } from "../hooks/useNotifications";
+import MenuDrawer from "../components/MenuDrawer";
 
-
-const useTeacher = () => ({
-  teacher: { fullName: "Nguyễn Thị Hoa" },
-  isLoading: false,
-});
-const useClass = () => ({
-  classInf: { name: "Mầm A1" },
-  isLoading: false,
-});
-const useNotifications = () => ({
-  notifications: [],
-  isLoading: false,
-});
-
-interface Teacher {
-  fullName: string;
-}
-interface ClassInfo {
-  name: string;
-}
-interface Notification {
-  id: string;
-}
-interface Post {
+// Types
+type Post = {
   id: string;
   image: any;
   title: string;
   subtitle: string;
   tag: string;
+};
+
+interface HomeScreenProps {
+  navigation?: any;
 }
-
-type HomeScreenProps = {
-  navigation: DrawerNavigationProp<RootParamList, "Home">;
-};
-
-type RootParamList = {
-  Home: undefined;
-  Contact: undefined;
-  Account: undefined;
-  Post: undefined;
-  Album: undefined;
-  Message: undefined;
-  Notification: undefined;
-  Medicine: undefined;
-  Comment: undefined;
-};
-
-type CustomDrawerContentProps = DrawerContentComponentProps & {
-  childName: string;
-};
-
-const CustomDrawerContent = (props: CustomDrawerContentProps) => (
-  <DrawerContentScrollView
-    {...props}
-    contentContainerStyle={styles.drawerContent}
-  >
-    <View style={styles.sidebarItem}>
-      <MaterialIcons
-        name="person-pin"
-        size={30}
-        color="white"
-        style={styles.icon}
-      />
-      <Text style={styles.sidebarText}>{props.childName}</Text>
-    </View>
-    <View style={styles.hr} />
-    {[
-      { name: "Home", icon: "home", screen: "Home" },
-      { name: "Liên Hệ", icon: "headset-mic", screen: "Contact" },
-      { name: "Tài Khoản", icon: "person", screen: "Account" },
-      { name: "Bài Viết", icon: "featured-play-list", screen: "Post" },
-      { name: "Ảnh", icon: "image", screen: "Album" },
-      { name: "Nhắn Tin", icon: "chat", screen: "Message" },
-      { name: "Thông Báo", icon: "notifications", screen: "Notification" },
-      { name: "Dinh Dưỡng", icon: "add-alert", screen: "Medicine" },
-      { name: "Nhận Xét", icon: "article", screen: "Comment" },
-    ].map((item, index) => (
-      <React.Fragment key={index}>
-        <DrawerItem
-          label={item.name}
-          icon={() => (
-            <MaterialIcons name={item.icon as any} size={30} color="white" />
-          )}
-          labelStyle={styles.sidebarText}
-          onPress={() =>
-            props.navigation.navigate(item.screen as keyof RootParamList)
-          }
-        />
-        <View style={styles.hr} />
-      </React.Fragment>
-    ))}
-  </DrawerContentScrollView>
-);
 
 // Main HomeScreen
 function HomeScreen({ navigation }: HomeScreenProps) {
@@ -130,6 +40,9 @@ function HomeScreen({ navigation }: HomeScreenProps) {
   const { teacher, isLoading: teacherLoading } = useTeacher();
   const { classInf, isLoading: classLoading } = useClass();
   const { notifications, isLoading: notificationsLoading } = useNotifications();
+
+  const [networkError, setNetworkError] = useState<string | null>(null);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
   const isLoading = teacherLoading || classLoading || notificationsLoading;
 
@@ -158,8 +71,41 @@ function HomeScreen({ navigation }: HomeScreenProps) {
     },
   ];
 
+  const handleNavigationWithConnection = async (
+    path: string,
+    requiresConnection = true
+  ) => {
+    if (requiresConnection) {
+      try {
+        const isConnected = await publicApi.testConnection();
+        if (!isConnected) {
+          Alert.alert(
+            "Lỗi kết nối",
+            "Không thể truy cập tính năng này. Vui lòng kiểm tra kết nối mạng."
+          );
+          return;
+        }
+      } catch (error) {
+        Alert.alert("Lỗi", "Có vấn đề với kết nối mạng. Vui lòng thử lại.");
+        return;
+      }
+    }
+
+    try {
+      router.push(path as any);
+    } catch (error) {
+      console.warn("Navigation error:", error);
+      Alert.alert("Lỗi", "Không thể chuyển trang. Vui lòng thử lại.");
+    }
+  };
+
   const renderPost = ({ item }: { item: Post }) => (
-    <View style={styles.postCard}>
+    <TouchableOpacity
+      style={styles.postCard}
+      onPress={() =>
+        handleNavigationWithConnection("/teachers/post_page", true)
+      }
+    >
       <Image source={item.image} style={styles.postImage} />
       <View style={{ flexDirection: "row", alignItems: "center", padding: 8 }}>
         <View style={styles.postTagBox}>
@@ -167,8 +113,27 @@ function HomeScreen({ navigation }: HomeScreenProps) {
         </View>
         <Text style={styles.postDetailText}>Xem chi tiết</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
+
+  useEffect(() => {
+    const checkNetworkStatus = async () => {
+      try {
+        const isConnected = await publicApi.testConnection();
+        if (!isConnected) {
+          setNetworkError(
+            "Kết nối mạng không ổn định. Một số tính năng có thể bị giới hạn."
+          );
+        } else {
+          setNetworkError(null);
+        }
+      } catch (error) {
+        setNetworkError("Không thể kiểm tra trạng thái mạng.");
+      }
+    };
+
+    checkNetworkStatus();
+  }, []);
 
   if (isLoading) {
     return (
@@ -180,6 +145,20 @@ function HomeScreen({ navigation }: HomeScreenProps) {
 
   return (
     <ScrollView style={styles.container}>
+      {networkError && (
+        <View
+          style={{
+            backgroundColor: "#ffeb3b",
+            padding: 10,
+            margin: 16,
+            borderRadius: 8,
+          }}
+        >
+          <Text style={{ color: "#333", textAlign: "center" }}>
+            {networkError}
+          </Text>
+        </View>
+      )}
       {/* Header */}
       <ImageBackground
         source={require("../../assets/images/background.png")}
@@ -187,25 +166,29 @@ function HomeScreen({ navigation }: HomeScreenProps) {
         imageStyle={styles.headerImage}
       >
         <View style={styles.headerRow}>
-          <TouchableOpacity
-            onPress={() => {
-              // Drawer menu sẽ được mở bởi NavigationContainer
-            }}
-          >
+          <TouchableOpacity onPress={() => setIsDrawerVisible(true)}>
             <MaterialIcons name="menu" size={30} color="white" />
           </TouchableOpacity>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             {/* Icon tìm kiếm */}
             <TouchableOpacity
-              onPress={() => router.push("/teachers/album")}
+              onPress={() =>
+                handleNavigationWithConnection("/teachers/album", false)
+              }
               style={{ marginRight: 16 }}
             >
               <MaterialIcons name="search" size={28} color="white" />
             </TouchableOpacity>
+
             {/* Icon thông báo */}
             <View style={styles.notificationWrapper}>
               <TouchableOpacity
-                onPress={() => router.push("/teachers/notification_page")}
+                onPress={() =>
+                  handleNavigationWithConnection(
+                    "/teachers/notification_page",
+                    true
+                  )
+                }
               >
                 <MaterialIcons
                   name="notifications-active"
@@ -221,6 +204,7 @@ function HomeScreen({ navigation }: HomeScreenProps) {
             </View>
           </View>
         </View>
+
         <View style={styles.eventBox}>
           <View style={styles.eventRow}>
             <View>
@@ -242,34 +226,57 @@ function HomeScreen({ navigation }: HomeScreenProps) {
         <View style={styles.navBox}>
           <TouchableOpacity
             style={styles.navItem}
-            onPress={() => router.push("/teachers/message_page")}
+            onPress={() => {
+              // Navigate to message with teacher parameters
+              router.push({
+                pathname: "/parents/message_parent",
+                params: {
+                  teacherId: 1, // Get from actual teacher data
+                  classroomId: 1, // Get from actual classroom data
+                  teacherName: teacher?.fullName || "Giáo viên",
+                },
+              });
+            }}
+            activeOpacity={0.7}
           >
             <View style={styles.navIconBox}>
               <MaterialIcons name="message" size={24} color="#00695C" />
             </View>
             <Text style={styles.navText}>Nhắn Tin</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.navItem}
-            onPress={() => router.push("/teachers/medicine_page")}
+            onPress={() =>
+              handleNavigationWithConnection("/teachers/medicine_page", true)
+            }
+            activeOpacity={0.7}
           >
             <View style={styles.navIconBox}>
               <MaterialIcons name="add-alert" size={24} color="#00695C" />
             </View>
             <Text style={styles.navText}>Dinh Dưỡng</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.navItem}
-            onPress={() => router.push("/teachers/album")}
+            onPress={() =>
+              handleNavigationWithConnection("/teachers/album", true)
+            }
+            activeOpacity={0.7}
           >
             <View style={styles.navIconBox}>
               <MaterialIcons name="photo" size={24} color="#00695C" />
             </View>
             <Text style={styles.navText}>Album</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.navItem}
-            onPress={() => router.push("/teachers/comment")}
+            onPress={() =>
+              handleNavigationWithConnection("/teachers/comment", true)
+            }
+            activeOpacity={0.7}
           >
             <View style={styles.navIconBox}>
               <MaterialIcons name="article" size={24} color="#00695C" />
@@ -278,36 +285,55 @@ function HomeScreen({ navigation }: HomeScreenProps) {
           </TouchableOpacity>
         </View>
 
-        {/* Teacher Info */}
+        {/* Teacher Info - Fix TouchableOpacity */}
         <View style={styles.teacherInfoBox}>
-          <Image
-            source={require("../../assets/images/teacher.png")}
-            style={styles.teacherAvatar}
-          />
-          <View style={styles.teacherInfoTextBox}>
-            <View style={styles.teacherInfoRow}>
-              <Text style={styles.teacherLabel}>Cô Giáo: </Text>
-              <Text style={styles.teacherValue}>
-                {teacher?.fullName || "Nguyễn Thị Hoa"}
-              </Text>
+          <TouchableOpacity
+            style={styles.studentInfoButton}
+            onPress={() => {
+              try {
+                router.push("/parents/student_account_page");
+              } catch (error) {
+                console.warn("Navigation error:", error);
+                Alert.alert("Lỗi", "Không thể mở trang thông tin học sinh");
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <Image
+              source={require("../../assets/images/teacher.png")}
+              style={styles.teacherAvatar}
+              defaultSource={require("../../assets/images/teacher.png")}
+            />
+            <View style={styles.teacherInfoTextBox}>
+              <View style={styles.teacherInfoRow}>
+                <Text style={styles.teacherLabel}>Học sinh: </Text>
+                <Text style={styles.teacherValue}>Xem thông tin</Text>
+              </View>
+              <View style={styles.teacherInfoRow}>
+                <Text style={styles.teacherLabel}>Lớp: </Text>
+                <Text style={styles.teacherValue}>
+                  {classInf?.name || "Mầm"}
+                </Text>
+              </View>
             </View>
-            <View style={styles.teacherInfoRow}>
-              <Text style={styles.teacherLabel}>Lớp: </Text>
-              <Text style={styles.teacherValue}>{classInf?.name || "Mầm"}</Text>
-            </View>
-          </View>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
         </View>
 
-        {/* Posts Section */}
+        {/* Posts Section - Fix TouchableOpacity */}
         <View style={styles.postsSection}>
           <View style={styles.postsHeader}>
             <Text style={styles.postsTitle}>Bài viết</Text>
             <TouchableOpacity
-              onPress={() => router.push("/teachers/post_page")}
+              onPress={() =>
+                handleNavigationWithConnection("/teachers/post_page", true)
+              }
+              activeOpacity={0.7}
             >
               <Text style={styles.postsSeeAll}>Xem tất cả</Text>
             </TouchableOpacity>
           </View>
+
           <View style={styles.postsFilterRow}>
             <ScrollView
               horizontal
@@ -340,13 +366,19 @@ function HomeScreen({ navigation }: HomeScreenProps) {
           />
         </View>
 
-        {/* Support Section */}
+        {/* Support Section - Fix TouchableOpacity */}
         <View style={styles.supportBox}>
           <View style={styles.supportTextBox}>
             <Text style={styles.supportText}>Hỗ trợ khám</Text>
             <Text style={styles.supportText}>sức khỏe định</Text>
             <Text style={styles.supportText}>kỳ cho bé</Text>
-            <TouchableOpacity style={styles.supportBtn}>
+            <TouchableOpacity
+              style={styles.supportBtn}
+              onPress={() =>
+                Alert.alert("Hỗ trợ", "Chức năng gọi điện đang được phát triển")
+              }
+              activeOpacity={0.7}
+            >
               <Text style={styles.supportBtnText}>GỌI NGAY</Text>
             </TouchableOpacity>
           </View>
@@ -356,83 +388,21 @@ function HomeScreen({ navigation }: HomeScreenProps) {
           />
         </View>
       </View>
+
+      {/* Menu Drawer */}
+      <MenuDrawer
+        visible={isDrawerVisible}
+        onClose={() => setIsDrawerVisible(false)}
+        userRole="parent"
+        userName="Phụ huynh"
+      />
     </ScrollView>
   );
 }
 
-const ContactScreen = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Contact Screen</Text>
-  </View>
-);
-const AccountScreen = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Account Screen</Text>
-  </View>
-);
-const PostScreen = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Post Screen</Text>
-  </View>
-);
-const AlbumScreen = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Album Screen</Text>
-  </View>
-);
-const MessageScreen = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Message Screen</Text>
-  </View>
-);
-const NotificationScreen = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Notification Screen</Text>
-  </View>
-);
-const MedicineScreen = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Medicine Screen</Text>
-  </View>
-);
-const CommentScreen = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Comment Screen</Text>
-  </View>
-);
-
-const Drawer = createDrawerNavigator<RootParamList>();
-
+// Sửa App component chỉ render HomeScreen trực tiếp
 export default function App() {
-  
-  const { teacher } = useTeacher();
-  const { classInf } = useClass();
-  const childName = classInf?.name || teacher?.fullName || "Giáo viên";
-
-  return (
-    <NavigationContainer independent>
-      <Drawer.Navigator
-        drawerContent={(props) => (
-          <CustomDrawerContent {...props} childName={childName} />
-        )}
-        screenOptions={{
-          drawerStyle: styles.sidebar,
-          drawerPosition: "left",
-          headerShown: false,
-        }}
-      >
-        <Drawer.Screen name="Home" component={HomeScreen} />
-        {/* <Drawer.Screen name="Contact" component={Contact} />
-        <Drawer.Screen name="Account" component={Account} />
-        <Drawer.Screen name="Post" component={Post} />
-        <Drawer.Screen name="Album" component={Album} /> */}
-        <Drawer.Screen name="Message" component={Message} />
-        {/* <Drawer.Screen name="Notification" component={Notification} />
-        <Drawer.Screen name="Medicine" component={Medicine} />
-        <Drawer.Screen name="Comment" component={Comment} /> */}
-      </Drawer.Navigator>
-    </NavigationContainer>
-  );
+  return <HomeScreen />;
 }
 
 const styles = StyleSheet.create({
@@ -500,7 +470,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
   },
-  navItem: { alignItems: "center", flex: 1 },
+  navItem: {
+    alignItems: "center",
+    flex: 1,
+    paddingVertical: 10, // Thêm padding để tăng vùng touch
+  },
   navIconBox: {
     backgroundColor: "#e0f7fa",
     padding: 12,
@@ -511,6 +485,9 @@ const styles = StyleSheet.create({
     marginTop: -24,
     borderWidth: 3,
     borderColor: "#fff",
+    // Đảm bảo icon box có kích thước đủ lớn để touch
+    minWidth: 48,
+    minHeight: 48,
   },
   navText: {
     fontSize: 14,
@@ -544,6 +521,13 @@ const styles = StyleSheet.create({
   teacherInfoRow: { flexDirection: "row", marginTop: 4 },
   teacherLabel: { fontSize: 15, fontWeight: "500", color: "#333" },
   teacherValue: { fontSize: 15, fontWeight: "bold", color: "#1A3442" },
+
+  studentInfoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    paddingVertical: 8, // Thêm padding để tăng vùng touch
+  },
 
   postsSection: { marginTop: 20, marginHorizontal: 16 },
   postsHeader: {
@@ -623,9 +607,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#14b8a6",
     borderRadius: 8,
     paddingHorizontal: 18,
-    paddingVertical: 8,
+    paddingVertical: 12, // Tăng padding
     marginTop: 14,
     alignSelf: "flex-start",
+    minHeight: 44, // Đảm bảo chiều cao tối thiểu cho touch
   },
   supportBtnText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
   supportImage: {

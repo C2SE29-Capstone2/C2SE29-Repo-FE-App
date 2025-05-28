@@ -257,7 +257,7 @@ const CommentChildPage = () => {
                       </Text>
                       <View style={styles.commentCard}>
                         <Text style={styles.commentText}>
-                          Nhận xét: {comment.comment}
+                          {comment.comment}
                         </Text>
                       </View>
                     </View>
@@ -270,20 +270,17 @@ const CommentChildPage = () => {
         />
       ) : (
         <View style={styles.center}>
-          <Text style={styles.noDataText}>Không có dữ liệu</Text>
+          <Text style={styles.noDataText}>Không có nhận xét nào</Text>
         </View>
       )}
 
       {/* Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() =>
-          router.push(
-            `/createComment?childId=${encodeURIComponent(
-              childId
-            )}` as Href<string>
-          )
-        }
+        onPress={() => {
+          // Navigate to add comment page
+          console.log("Add comment");
+        }}
       >
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>

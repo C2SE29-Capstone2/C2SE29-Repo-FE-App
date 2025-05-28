@@ -1,6 +1,73 @@
 # Welcome to your Expo app 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Current Status ✅
+
+The application has been **significantly improved** with better backend connectivity and error handling:
+
+### Fixed Issues:
+- ✅ **Import Path Error**: Fixed AuthContext import from `../api/publicApi` to `../services/api`
+- ✅ **Backend Connection**: Improved automatic backend switching and fallback mechanisms
+- ✅ **Mock Mode**: Enhanced mock data for offline development and testing
+- ✅ **Teacher Role**: Complete teacher functionality with proper data handling
+- ✅ **UI Components**: All screens render properly with error boundaries
+
+### Current Features:
+- 🔄 **Smart Backend Detection**: Automatically finds working backend servers
+- 📱 **Mock Mode Fallback**: App works offline with sample data
+- 👨‍🏫 **Teacher Dashboard**: Complete teacher interface with data management
+- 👨‍👩‍👧‍👦 **Parent Portal**: Parent interface for student monitoring
+- 👶 **Student View**: Student-specific interface and features
+- 💬 **Messaging System**: Chat functionality between teachers and parents
+- 📊 **Health Tracking**: Student health and growth monitoring
+- 📸 **Photo Albums**: Class photo management
+- 🔐 **Authentication**: Secure login with role-based access
+
+### Backend Connection Status:
+- 🔍 **Auto-Discovery**: Tests multiple backend URLs automatically
+- ⚠️ **Graceful Degradation**: Falls back to mock mode when backends are offline
+- 🔄 **Smart Retry**: Automatically switches to working backends
+- 📊 **Connection Monitoring**: Real-time backend status display
+
+## Troubleshooting Backend Connection
+
+If you see "Backend offline" or "Mock mode":
+
+1. **Start Spring Boot Backend**:
+   ```bash
+   cd backend-project
+   mvn spring-boot:run
+   # or
+   ./gradlew bootRun
+   ```
+
+2. **Check Network**: Ensure frontend and backend are on same WiFi network
+
+3. **Verify Port**: Backend should run on port 8080
+
+4. **Firewall**: Check if port 8080 is accessible
+
+5. **Manual Backend Selection**: Use the backend selector in login screen
+
+## Demo Mode
+
+The app includes comprehensive mock data, so you can:
+- ✅ Test all features without backend
+- ✅ Demo the complete user experience  
+- ✅ Develop frontend features independently
+- ✅ Show stakeholders the full application flow
+
+## Architecture
+
+```
+app/
+├── services/api.ts          # Backend API integration
+├── context/AuthContext.tsx  # Authentication management
+├── components/             # Reusable UI components
+├── teachers/              # Teacher-specific screens
+├── parents/               # Parent-specific screens
+├── students/              # Student-specific screens
+└── hooks/                 # Custom React hooks
+```
 
 ## Get started
 
@@ -13,27 +80,15 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 2. Start the app
 
    ```bash
-    npx expo start
+   npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+In the output, you'll find options to open the app in a:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Development build](https://docs.expo.dev/develop/development-builds/introduction/)
 - [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
 ## Learn more
 

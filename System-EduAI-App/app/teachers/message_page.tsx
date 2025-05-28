@@ -10,98 +10,197 @@ import {
   ScrollView,
   StyleSheet,
   ImageBackground,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useAuth } from "../context/AuthContext";
+import { authApi } from "../services/api";
 
-const mockTeacher = {
-  fullName: "Nguyễn Thanh Tân",
-  phoneNumber: "0761594238",
-  avatar: require("../../assets/images/teacher.png"),
-};
-const mockParent = {
-  fullName: "Mẹ Chaien",
-  avatar: require("../../assets/images/parent.png"),
-};
+interface ChatMessage {
+  id: number;
+  senderId: number;
+  receiverId: number;
+  content: string;
+  timestamp: string;
+  classroomId: number;
+  isTeacherSender: boolean;
+  senderName?: string;
+}
 
-const mockMessages = [
-  {
-    id: "1",
-    content:
-      "Cuối tuần trường có đi An Hòa Farm mà nhà mình có việc mất nên không đi được cô thông cảm nha!",
-    hour: 16,
-    minute: 4,
-    sendUserId: "parent",
-  },
-  {
-    id: "2",
-    content: "Dạ vâng chị để em báo với nhà trường ạ!",
-    hour: 16,
-    minute: 4,
-    sendUserId: "teacher",
-  },
-];
+export default function TeacherMessagePage() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const { token } = useAuth();
 
-export default function MessagePage() {
-  const navigation = useNavigation();
-  const [messages, setMessages] = useState(mockMessages);
+  // Get parameters from route
+  const parentId = params.parentId ? parseInt(params.parentId as string) : 1;
+  const classroomId = params.classroomId
+    ? parseInt(params.classroomId as string)
+    : 1;
+  const parentName = (params.parentName as string) || "Phụ huynh";
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const handleSend = () => {
-    if (input.trim() === "") return;
-    setMessages([
-      ...messages,
-      {
-        id: (messages.length + 1).toString(),
-        content: input,
-        hour: new Date().getHours(),
-        minute: new Date().getMinutes(),
-        sendUserId: "teacher",
-      },
-    ]);
-    setInput("");
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+  useEffect(() => {
+    if (token) {
+      loadChatHistory();
+      // Set up more frequent polling for real-time updates
+      const interval = setInterval(() => {
+        loadChatHistory(false); // Silent refresh
+      }, 2000); // Check every 2 seconds for new messages
+      return () => clearInterval(interval);
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
+
+  const loadChatHistory = async (showRefreshing = false) => {
+    if (!token) return;
+
+    try {
+      if (showRefreshing) setRefreshing(true);
+      else if (messages.length === 0) setLoading(true);
+
+      console.log("Loading chat history for teacher with:", {
+        classroomId,
+        parentId,
+        isTeacher: true,
+      });
+
+      const history = await authApi.getChatHistory(
+        token,
+        classroomId,
+        parentId,
+        true // isTeacher = true
+      );
+
+      console.log("Received chat history:", history);
+
+      // Check if messages have actually changed before updating state
+      const currentMessageIds = messages.map((m) => m.id).sort();
+      const newMessageIds = (history || []).map((m) => m.id).sort();
+
+      if (JSON.stringify(currentMessageIds) !== JSON.stringify(newMessageIds)) {
+        setMessages(history || []);
+        // Auto scroll to bottom when new messages arrive
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Error loading chat history:", error);
+      if (showRefreshing) {
+        Alert.alert("Lỗi", "Không thể tải tin nhắn mới");
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const buildMessage = (message: any) => {
-    const isTeacher = message.sendUserId === "teacher";
+  const handleSend = async () => {
+    if (input.trim() === "" || !token || sending) return;
+
+    const messageContent = input.trim();
+    setInput("");
+    setSending(true);
+
+    try {
+      console.log("Sending message as teacher:", {
+        classroomId,
+        parentId,
+        isTeacher: true,
+        content: messageContent,
+      });
+
+      const sentMessage = await authApi.sendMessage(
+        token,
+        classroomId,
+        parentId,
+        true, // isTeacher = true
+        messageContent
+      );
+
+      console.log("Sent message result:", sentMessage);
+
+      if (sentMessage) {
+        // Add message immediately to UI for instant feedback
+        setMessages((prev) => [...prev, sentMessage]);
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+
+        // Force refresh chat history after a short delay to sync with server
+        setTimeout(() => {
+          loadChatHistory(false);
+        }, 1000);
+      } else {
+        Alert.alert("Lỗi", "Không thể gửi tin nhắn");
+        setInput(messageContent); // Restore input
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      Alert.alert("Lỗi", "Có lỗi xảy ra khi gửi tin nhắn");
+      setInput(messageContent); // Restore input
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const buildMessage = (message: ChatMessage) => {
+    const isCurrentUserMessage = message.isTeacherSender; // Current user is teacher
+    const messageTime = new Date(message.timestamp);
+
     return (
       <View
-        key={message.id}
+        key={`message-${message.id}-${message.timestamp}`}
         style={[
           styles.messageRow,
-          isTeacher ? styles.messageRowRight : styles.messageRowLeft,
+          isCurrentUserMessage ? styles.messageRowRight : styles.messageRowLeft,
         ]}
       >
-        {!isTeacher && (
-          <Image source={mockParent.avatar} style={styles.msgAvatar} />
+        {!isCurrentUserMessage && (
+          <Image
+            source={require("../../assets/images/teacher.png")}
+            style={styles.msgAvatar}
+          />
         )}
         <View
           style={[
             styles.bubble,
-            isTeacher ? styles.bubbleTeacher : styles.bubbleParent,
+            isCurrentUserMessage ? styles.bubbleTeacher : styles.bubbleParent,
           ]}
         >
           <Text
             style={[
               styles.bubbleText,
-              isTeacher ? styles.bubbleTextTeacher : styles.bubbleTextParent,
+              isCurrentUserMessage
+                ? styles.bubbleTextTeacher
+                : styles.bubbleTextParent,
             ]}
           >
             {message.content}
           </Text>
           <Text style={styles.timeText}>
-            {`${message.hour.toString().padStart(2, "0")}:${message.minute
-              .toString()
-              .padStart(2, "0")}`}
+            {messageTime.toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </Text>
         </View>
-        {isTeacher && (
+        {isCurrentUserMessage && (
           <View style={{ alignItems: "center" }}>
-            <Image source={mockTeacher.avatar} style={styles.msgAvatar} />
+            <Image
+              source={require("../../assets/images/teacher.png")}
+              style={styles.msgAvatar}
+            />
             <View style={styles.statusDot} />
           </View>
         )}
@@ -109,87 +208,121 @@ export default function MessagePage() {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4DB6AC" />
+        <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
-    style={{ flex: 1 }}
-    behavior={Platform.OS === "ios" ? "padding" : "height"}
-    keyboardVerticalOffset={0}
-  >
-    <ImageBackground
-        source={require("../../assets/images/imageBackground.png")} 
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={0}
+    >
+      <ImageBackground
+        source={require("../../assets/images/imageBackground.png")}
         style={styles.background}
         resizeMode="cover"
         blurRadius={8}
       >
-        
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back-ios" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Image source={mockParent.avatar} style={styles.headerAvatar} />
-        <Text style={styles.headerTitle}>Mẹ Chaien</Text>
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity>
-          <MaterialIcons name="videocam" size={25} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <MaterialIcons
-            name="phone-in-talk"
-            size={25}
-            color="#fff"
-            style={{ marginLeft: 20 }}
-          />
-        </TouchableOpacity>
-      </View>
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()}>
+              <MaterialIcons name="arrow-back-ios" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Image
+              source={require("../../assets/images/teacher.png")}
+              style={styles.headerAvatar}
+            />
+            <Text style={styles.headerTitle}>{parentName}</Text>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity onPress={() => loadChatHistory(true)}>
+              <MaterialIcons
+                name="refresh"
+                size={25}
+                color="#fff"
+                style={{ opacity: refreshing ? 0.5 : 1 }}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <MaterialIcons
+                name="phone-in-talk"
+                size={25}
+                color="#fff"
+                style={{ marginLeft: 20 }}
+              />
+            </TouchableOpacity>
+          </View>
 
-      {/* Messages */}
-      <ScrollView
-        style={styles.messages}
-        ref={scrollViewRef}
-        onContentSizeChange={() =>
-          scrollViewRef.current?.scrollToEnd({ animated: true })
-        }
-        keyboardShouldPersistTaps="handled"
-      >
-        {messages.map((msg) => buildMessage(msg))}
-      </ScrollView>
+          {/* Messages */}
+          <ScrollView
+            style={styles.messages}
+            ref={scrollViewRef}
+            onContentSizeChange={() =>
+              scrollViewRef.current?.scrollToEnd({ animated: true })
+            }
+            keyboardShouldPersistTaps="handled"
+          >
+            {messages.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!
+                </Text>
+              </View>
+            ) : (
+              messages.map((msg) => buildMessage(msg))
+            )}
+          </ScrollView>
 
-      {/* Input */}
-      <View style={styles.inputRow}>
-        <TouchableOpacity style={styles.inputIcon}>
-          <MaterialIcons name="emoji-emotions" size={28} color="#2196F3" />
-        </TouchableOpacity>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Viết tin nhắn..."
-          placeholderTextColor="#94a3b8"
-          value={input}
-          onChangeText={setInput}
-        />
-        <TouchableOpacity style={styles.inputIcon}>
-          <MaterialIcons name="mic" size={24} color="#14b8a6" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.inputIcon} onPress={handleSend}>
-          <MaterialIcons name="send" size={28} color="#2196F3" />
-        </TouchableOpacity>
-      </View>
-    </View>
-    </ImageBackground>
-  </KeyboardAvoidingView> 
+          {/* Input */}
+          <View style={styles.inputRow}>
+            <TouchableOpacity style={styles.inputIcon}>
+              <MaterialIcons name="emoji-emotions" size={28} color="#2196F3" />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Viết tin nhắn cho phụ huynh..."
+              placeholderTextColor="#94a3b8"
+              value={input}
+              onChangeText={setInput}
+              multiline
+              maxLength={500}
+            />
+            <TouchableOpacity style={styles.inputIcon}>
+              <MaterialIcons name="mic" size={24} color="#14b8a6" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.inputIcon, sending && styles.disabledButton]}
+              onPress={handleSend}
+              disabled={sending}
+            >
+              {sending ? (
+                <ActivityIndicator size={20} color="#2196F3" />
+              ) : (
+                <MaterialIcons name="send" size={28} color="#2196F3" />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ImageBackground>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "transparent", // light blue
+    backgroundColor: "transparent",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#38bdf8", // blue-400
+    backgroundColor: "#4DB6AC",
     paddingHorizontal: 20,
     paddingVertical: 20,
     paddingTop: 30,
@@ -244,31 +377,31 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     justifyContent: "center",
   },
+  bubbleTeacher: {
+    backgroundColor: "#4DB6AC",
+    marginLeft: 8,
+    marginRight: 0,
+  },
+  bubbleTextTeacher: {
+    color: "#fff",
+  },
   bubbleParent: {
     backgroundColor: "#fff",
     marginLeft: 0,
     marginRight: 8,
   },
-  bubbleTeacher: {
-    backgroundColor: "#2196F3",
-    marginLeft: 8,
-    marginRight: 0,
-  },
-  bubbleText: {
-    fontSize: 15,
-    marginBottom: 4,
-  },
   bubbleTextParent: {
     color: "#222",
   },
-  bubbleTextTeacher: {
-    color: "#fff",
+  bubbleText: {
+    fontSize: 16,
+    lineHeight: 20,
   },
   timeText: {
     fontSize: 12,
     color: "#b0b0b0",
     alignSelf: "flex-end",
-    marginTop: -2,
+    marginTop: 4,
   },
   statusDot: {
     width: 10,
@@ -289,8 +422,6 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 18,
   },
   textInput: {
     flex: 1,
@@ -299,15 +430,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 20,
     borderRadius: 24,
-    fontSize: 20,
+    fontSize: 16,
     marginRight: 4,
+    maxHeight: 100,
   },
   inputIcon: {
     marginLeft: 1,
+    padding: 4,
   },
   background: {
     flex: 1,
     width: "100%",
     height: "100%",
-  }, 
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#666",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 50,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
 });
